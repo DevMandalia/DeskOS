@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverPath = path.join(root, "mcp", "server.mjs");
-const expected = ["raise_decision", "add_task", "list_items", "get_verdict", "reply_discussion"];
+const expected = ["raise_decision", "add_task", "list_items", "get_verdict", "reply_discussion", "add_chat", "list_chats", "update_chat"];
 
 const child = spawn(process.execPath, [serverPath], {
   stdio: ["pipe", "pipe", "pipe"],

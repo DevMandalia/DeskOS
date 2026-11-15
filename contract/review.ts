@@ -19,14 +19,14 @@ export function parseReviewTaskDays(env: Record<string, string | undefined> = pr
   return DEFAULT_REVIEW_TASK_DAYS;
 }
 
-export type ReviewKind = "split" | "incomplete_high" | "stale_waiting" | "stale_task" | "wip_overflow" | "expired_park";
+export type ReviewKind = "split" | "incomplete_high" | "stale_waiting" | "stale_task" | "stale_chat" | "wip_overflow" | "expired_park";
 
 export type ReviewItem = {
   id: string;
   kind: ReviewKind;
   title: string;
   reason: string;
-  type: "decision" | "task";
+  type: "decision" | "task" | "chat";
 };
 
 function daysAgo(ymd: string | null | undefined, today: string): number | null {
@@ -76,6 +76,19 @@ export function reviewDecisionBucket(
   return null;
 }
 
+export function reviewChatBucket(
+  chat: { id: string; title: string; status?: string; comeBackBy?: string; createdAt?: string; missedCount?: number },
+  today: string,
+  staleDays: number,
+): ReviewItem | null {
+  if (chat.status !== "open" && chat.status !== "resumed") return null;
+  const missed = chat.missedCount ?? 0;
+  const created = (chat.createdAt ?? "").slice(0, 10);
+  const stale = missed >= 2 || (isYmd(created) && addDaysYmd(created, staleDays) <= today);
+  if (!stale) return null;
+  return { id: chat.id, kind: "stale_chat", title: chat.title, reason: "Suggest close — I won’t return", type: "chat" };
+}
+
 export function reviewTaskBucket(
   task: { id: string; title: string; due?: string | null; lastEdited?: string | null; createdAt?: string | null; status?: string | null },
   today: string,
@@ -93,7 +106,7 @@ export function reviewTaskBucket(
   return null;
 }
 
-const KIND_ORDER: ReviewKind[] = ["split", "incomplete_high", "stale_waiting", "stale_task", "wip_overflow", "expired_park"];
+const KIND_ORDER: ReviewKind[] = ["split", "incomplete_high", "stale_waiting", "stale_task", "stale_chat", "wip_overflow", "expired_park"];
 
 export function sortReviewItems(items: ReviewItem[]): ReviewItem[] {
   return [...items].sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));

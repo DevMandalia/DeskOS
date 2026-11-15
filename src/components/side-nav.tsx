@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { BATCH_HREF, BOARD_HREF, HOME_HREF, REVIEW_HREF, STATS_HREF, type DeskScope, type NavModel } from "@/lib/nav";
+import { BATCH_HREF, BOARD_HREF, CHATS_HREF, HOME_HREF, REVIEW_HREF, STATS_HREF, type DeskScope, type NavModel } from "@/lib/nav";
 
 const SETTINGS_HREF = "/settings";
 
@@ -102,6 +102,9 @@ export function SideNav({
         </Link>
         <Link href={STATS_HREF} className="side-link">
           <span className="side-link-name">Stats</span>
+        </Link>
+        <Link href={CHATS_HREF} className="side-link">
+          <span className="side-link-name">Chats</span>
         </Link>
         <Link href={SETTINGS_HREF} className="side-link">
           <span className="side-link-name">Settings</span>

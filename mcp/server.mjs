@@ -62,6 +62,44 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {} },
   },
   {
+    name: "add_chat",
+    description: "Store a chat pointer (url + next step). Never scrapes or stores transcripts.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: { type: "string" },
+        app: { type: "string" },
+        title: { type: "string" },
+        next_step: { type: "string", description: "Where the owner left off" },
+        come_back_by: { type: "string", description: "YYYY-MM-DD" },
+        ephemeral: { type: "boolean" },
+        note: { type: "string" },
+      },
+      required: ["next_step"],
+    },
+  },
+  {
+    name: "list_chats",
+    description: "List chat pointers for this agent.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "update_chat",
+    description: "Update a chat pointer. Cannot close or convert.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        title: { type: "string" },
+        next_step: { type: "string" },
+        come_back_by: { type: "string" },
+        note: { type: "string" },
+        app: { type: "string" },
+      },
+      required: ["id"],
+    },
+  },
+  {
     name: "get_verdict",
     description: "Poll a decision for the owner's verdict and discussion thread.",
     inputSchema: {
@@ -157,6 +195,36 @@ async function callTool(name, args = {}) {
       );
     case "list_items":
       return textResult(await desk("/api/v1/items"));
+    case "add_chat":
+      return textResult(
+        await desk("/api/v1/chats", {
+          method: "POST",
+          body: JSON.stringify({
+            url: args.url,
+            app: args.app,
+            title: args.title,
+            next_step: args.next_step ?? args.left_off_at,
+            come_back_by: args.come_back_by,
+            ephemeral: args.ephemeral,
+            note: args.note,
+          }),
+        }),
+      );
+    case "list_chats":
+      return textResult(await desk("/api/v1/chats"));
+    case "update_chat":
+      return textResult(
+        await desk(`/api/v1/chats/${encodeURIComponent(args.id)}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            title: args.title,
+            next_step: args.next_step,
+            come_back_by: args.come_back_by,
+            note: args.note,
+            app: args.app,
+          }),
+        }),
+      );
     case "get_verdict":
       return textResult(await desk(`/api/v1/decisions/${encodeURIComponent(args.id)}/verdict`));
     case "reply_discussion":

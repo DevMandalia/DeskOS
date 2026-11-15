@@ -12,6 +12,15 @@ export function ReviewList({ items }: { items: ReviewItem[] }) {
   if (items.length === 0) return <p className="empty">Nothing to review.</p>;
 
   async function act(item: ReviewItem, action: string) {
+    if (item.type === "chat") {
+      if (action === "Kill") {
+        await fetch(withBasePath(`/api/v1/chats/${item.id}/close`), { method: "POST" });
+        router.refresh();
+        return;
+      }
+      router.push(withBasePath("/chats"));
+      return;
+    }
     if (item.type !== "decision" || item.id === "wip") {
       router.push(withBasePath("/board"));
       return;
@@ -41,7 +50,16 @@ export function ReviewList({ items }: { items: ReviewItem[] }) {
         <li key={`${item.type}-${item.id}-${item.kind}`}>
           <p className="home-item-title">{item.title}</p>
           <p className="home-item-meta">{item.reason}</p>
-          {item.type === "decision" && item.kind !== "wip_overflow" ? (
+          {item.type === "chat" ? (
+            <p className="review-actions">
+              <button type="button" className="text-btn" disabled={Boolean(busy)} onClick={() => void act(item, "Keep")}>
+                Open Chats
+              </button>
+              <button type="button" className="text-btn" disabled={Boolean(busy)} onClick={() => void act(item, "Kill")}>
+                Close — I won’t return
+              </button>
+            </p>
+          ) : item.type === "decision" && item.kind !== "wip_overflow" ? (
             <p className="review-actions">
               {item.kind === "split" ? (
                 <button type="button" className="text-btn" disabled={Boolean(busy)} onClick={() => void act(item, "Split")}>

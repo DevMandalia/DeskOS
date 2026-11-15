@@ -11,18 +11,24 @@ import { STATUS } from "@/lib/decide";
 import { deskTimezone } from "@/lib/env";
 import { listSessionLines } from "@/lib/session-log";
 import {
+  defaultComeBackBy,
   defaultRevisitDate,
   doneThisWeekCount,
+  parseChatRevisitDays,
   parseSessionCap,
+  parseSessionChatCap,
   parkRevisitDays,
   sessionForDay,
+  sessionOverdueChats,
   startCtaLabel,
   timeoutClassOn,
   timeoutNoticeTomorrow,
   todayYmd,
   waitingListLabel,
 } from "../../contract";
-import { BATCH_HREF, BOARD_HREF, REVIEW_HREF, STATS_HREF, buildHome, decisionHref, deskHref, legacyListHref, type DeskScope } from "@/lib/nav";
+import { ChatRow } from "@/components/chat-lane";
+import { listChatPointers } from "@/lib/chats/store";
+import { BATCH_HREF, BOARD_HREF, CHATS_HREF, REVIEW_HREF, STATS_HREF, buildHome, decisionHref, deskHref, legacyListHref, type DeskScope } from "@/lib/nav";
 import { ageDays, cardAge, displayTitle, queueOrderHint, queueSort } from "@/lib/queue";
 import { listOwnerRows } from "@/lib/owner-rows";
 import { demoDecisions } from "@/lib/seed";
@@ -63,6 +69,10 @@ export default async function HomePage({
   const next = home.next;
   const today = todayYmd(now, deskTimezone());
   const session = sessionForDay(await listSessionLines(), today, parseSessionCap(), deskTimezone());
+  const allChats = await listChatPointers();
+  const overdueChats = sessionOverdueChats(allChats, today, parseSessionChatCap());
+  const snoozeDate = defaultComeBackBy(today, parseChatRevisitDays());
+  const moreChats = Math.max(0, allChats.filter((c) => c.status === "open" || c.status === "resumed").length - overdueChats.length);
   const weekDone = doneThisWeekCount(rows, today, STATUS.done, deskTimezone());
   const defaultsTomorrow = timeoutClassOn()
     ? rows.filter((row) => timeoutNoticeTomorrow(row, today, STATUS.waiting, { classOn: true }))
@@ -121,6 +131,8 @@ export default async function HomePage({
             <Link href={BATCH_HREF}>Batch similar</Link>
             {" · "}
             <Link href={STATS_HREF}>Stats</Link>
+            {" · "}
+            <Link href={CHATS_HREF}>Chats</Link>
           </p>
         </section>
 
@@ -144,6 +156,19 @@ export default async function HomePage({
               ))}
             </ol>
           )}
+          {overdueChats.length > 0 ? (
+            <div>
+              <p className="desk-sub">Overdue chats (do not count toward the verdict cap).</p>
+              <ul className="home-list">
+                {overdueChats.map((chat) => (
+                  <ChatRow key={chat.id} chat={chat} snoozeDate={snoozeDate} />
+                ))}
+              </ul>
+              <p className="home-more">
+                {moreChats > 0 ? <Link href={CHATS_HREF}>{moreChats} more in Chats →</Link> : <Link href={CHATS_HREF}>Chats →</Link>}
+              </p>
+            </div>
+          ) : null}
         </section>
 
         {defaultsTomorrow.length > 0 ? (

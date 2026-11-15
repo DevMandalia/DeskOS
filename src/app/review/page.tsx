@@ -10,15 +10,18 @@ import { deskTimezone } from "@/lib/env";
 import {
   doingCount,
   findDoingColumn,
+  parseChatStaleDays,
   parseReviewTaskDays,
   parseReviewWaitingDays,
   parseWipLimit,
+  reviewChatBucket,
   reviewDecisionBucket,
   reviewPage,
   reviewTaskBucket,
   sortReviewItems,
   todayYmd,
 } from "@/lib/desk-contract";
+import { listChatPointers } from "@/lib/chats/store";
 import { listOwnerRows } from "@/lib/owner-rows";
 import { demoDecisions } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
@@ -63,6 +66,11 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
     }
   } catch {
     /* board optional */
+  }
+  const staleDays = parseChatStaleDays();
+  for (const chat of await listChatPointers()) {
+    const stale = reviewChatBucket(chat, today, staleDays);
+    if (stale) collected.push(stale);
   }
   const items = sortReviewItems(collected);
   const page = reviewPage(items, offset);

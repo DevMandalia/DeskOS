@@ -95,6 +95,8 @@ Pick adapters with env vars. **Nothing in `src/lib`, `src/app`, or `src/componen
 | `REVIEW_WAITING_DAYS` | stale waiting decisions | `14` |
 | `REVIEW_TASK_DAYS` | stale undated tasks | `30` |
 | `CHAT_REVISIT_DAYS` | come-back for open chats | `3` |
+| `SESSION_CHAT_CAP` | overdue chats in the daily session | `2` |
+| `CHAT_STALE_DAYS` | suggest close after this many open days | `14` |
 
 Notion is an **optional example** adapter (`adapters/notion`). See `adapters/notion/README.md`.
 
@@ -138,7 +140,7 @@ curl -sS -X POST "$DESK/api/v1/decisions/$ID/replies" \
 
 There is **no shared desk webhook**. Optional per-agent HMAC webhooks fire on Approve / Decline / Park (`X-Desk-Signature: sha256=…`). The payload may include `revisit_at`. Optional owner email / Slack alerts are separate.
 
-MCP: `dist/deskos.mcpb` (stdio). User config is desk URL + agent token. Tools: `raise_decision`, `add_task`, `list_items`, `get_verdict`, `reply_discussion`. Pack with `npm run mcp:pack`. Verify locally with `npm run mcp:test`.
+MCP: `dist/deskos.mcpb` (stdio). User config is desk URL + agent token. Tools: `raise_decision`, `add_task`, `list_items`, `get_verdict`, `reply_discussion`, `add_chat`, `list_chats`, `update_chat`. Pack with `npm run mcp:pack`. Verify locally with `npm run mcp:test`. Pointers only — no scrape, no transcripts.
 
 ## Roadmap
 
