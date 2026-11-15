@@ -42,7 +42,7 @@ export function DemoDesk({
       <main className="signin-screen">
         <section className="signin-card">
           <p className="kicker">Demo</p>
-          <h1 className="signin-title">Decision Desk</h1>
+          <h1 className="signin-title">DeskOS</h1>
           <p className="signin-subtitle">{demoBanner()}</p>
           <p>
             <Link href="/" className="btn btn-approve signin-btn">

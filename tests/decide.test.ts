@@ -28,7 +28,7 @@ describe("formatReply", () => {
   it("formats a note with ISO time in the desk timezone", () => {
     const at = new Date("2026-11-13T18:18:22.000Z");
     const line = formatReply("Approve", "Keep all five", at);
-    expect(line.startsWith("Approve — Keep all five (via Decision Desk, ")).toBe(true);
+    expect(line.startsWith("Approve — Keep all five (via DeskOS, ")).toBe(true);
     expect(line.endsWith(")")).toBe(true);
     expect(line).toContain("2026-11-13T10:18:22-08:00");
   });
@@ -36,34 +36,34 @@ describe("formatReply", () => {
   it("keeps the em dash when the note is empty", () => {
     const at = new Date("2026-11-13T18:18:22.000Z");
     expect(formatReply("Decline", "  ", at)).toBe(
-      "Decline — (via Decision Desk, 2026-11-13T10:18:22-08:00)",
+      "Decline — (via DeskOS, 2026-11-13T10:18:22-08:00)",
     );
   });
 });
 
 describe("prependReply", () => {
   it("returns the new line when the field is empty", () => {
-    expect(prependReply(null, "Approve — (via Decision Desk, t)")).toBe(
-      "Approve — (via Decision Desk, t)",
+    expect(prependReply(null, "Approve — (via DeskOS, t)")).toBe(
+      "Approve — (via DeskOS, t)",
     );
   });
 
   it("puts the new line above existing text", () => {
-    expect(prependReply("old note", "Discuss — hold (via Decision Desk, t)")).toBe(
-      "Discuss — hold (via Decision Desk, t)\nold note",
+    expect(prependReply("old note", "Discuss — hold (via DeskOS, t)")).toBe(
+      "Discuss — hold (via DeskOS, t)\nold note",
     );
   });
 });
 
 describe("isDuplicateReply", () => {
   it("treats the same choice and note within two minutes as a double-click", () => {
-    const existing = "Approve — keep (via Decision Desk, 2026-11-13T10:18:22-08:00)";
+    const existing = "Approve — keep (via DeskOS, 2026-11-13T10:18:22-08:00)";
     const now = Date.parse("2026-11-13T18:19:00.000Z");
     expect(isDuplicateReply(existing, "Approve", "keep", now)).toBe(true);
   });
 
   it("allows a different choice", () => {
-    const existing = "Approve — keep (via Decision Desk, 2026-11-13T10:18:22-08:00)";
+    const existing = "Approve — keep (via DeskOS, 2026-11-13T10:18:22-08:00)";
     expect(isDuplicateReply(existing, "Decline", "keep")).toBe(false);
   });
 });

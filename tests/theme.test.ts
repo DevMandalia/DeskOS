@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { contrastRatio, DARK, LIGHT, THEME_BOOTSTRAP_SCRIPT } from "../src/lib/theme";
 
-describe("Trader's OS contrast (WCAG AA)", () => {
+describe("DeskOS contrast (WCAG AA)", () => {
   it("keeps light text, chips, and buttons at or above 4.5:1", () => {
     expect(contrastRatio(LIGHT.text, LIGHT.bg)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(LIGHT.secondary, LIGHT.bg)).toBeGreaterThanOrEqual(4.5);

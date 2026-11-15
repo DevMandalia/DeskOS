@@ -69,9 +69,9 @@ export function formatReply(choice: Choice, note: string, at: Date): string {
   const iso = formatIsoInZone(at);
   const trimmed = note.trim();
   if (trimmed) {
-    return `${choice} — ${trimmed} (via Decision Desk, ${iso})`;
+    return `${choice} — ${trimmed} (via DeskOS, ${iso})`;
   }
-  return `${choice} — (via Decision Desk, ${iso})`;
+  return `${choice} — (via DeskOS, ${iso})`;
 }
 
 export function prependReply(
@@ -93,7 +93,7 @@ export function isDuplicateReply(
   const first = existing.split("\n")[0]?.trim() ?? "";
   const trimmed = note.trim();
   const prefix = trimmed ? `${choice} — ${trimmed} (` : `${choice} — (`;
-  if (!first.startsWith(prefix) || !first.includes("via Decision Desk")) {
+  if (!first.startsWith(prefix) || !first.includes("via DeskOS")) {
     return false;
   }
   const stamp = first.match(/(\d{4}-\d{2}-\d{2}T[0-9:+-]+)\)$/);

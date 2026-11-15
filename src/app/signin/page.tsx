@@ -30,7 +30,7 @@ export default async function SignInPage({
       <section className="signin-card" aria-labelledby="signin-title">
         <p className="kicker signin-kicker">Private · Desk</p>
         <h1 id="signin-title" className="signin-title">
-          Decision Desk
+          DeskOS
         </h1>
         <p className="signin-subtitle">{SIGNIN_SUBTITLE}</p>
         {message ? (

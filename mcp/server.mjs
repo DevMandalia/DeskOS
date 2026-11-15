@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Stdio MCP client for Decision Desk. Talks to the desk over REST with a
+ * Stdio MCP client for DeskOS. Talks to the desk over REST with a
  * per-agent API key. Configure DESK_URL + DESK_TOKEN (or user_config in the .mcpb).
  */
 import { createInterface } from "node:readline";
@@ -149,7 +149,7 @@ async function handle(msg) {
     return {
       protocolVersion: "2024-11-05",
       capabilities: { tools: {} },
-      serverInfo: { name: "decision-desk", version: "0.1.0" },
+      serverInfo: { name: "deskos", version: "0.1.0" },
     };
   }
   if (msg.method === "notifications/initialized") return null;

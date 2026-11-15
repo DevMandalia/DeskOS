@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       base_path:
-        description: "NEXT_PUBLIC_BASE_PATH (empty for a user site, /decision-desk for a project site)"
+        description: "NEXT_PUBLIC_BASE_PATH (empty for a user site, /DeskOS for a project site)"
         required: false
-        default: "/decision-desk"
+        default: "/DeskOS"
 
 permissions:
   contents: read

@@ -1,11 +1,11 @@
 {
   "manifest_version": "0.2",
-  "name": "decision-desk",
-  "display_name": "Decision Desk",
+  "name": "deskos",
+  "display_name": "DeskOS",
   "version": "0.1.0",
-  "description": "Raise decisions, add tasks, list items, poll verdicts, and reply on a self-hosted Decision Desk.",
+  "description": "Raise decisions, add tasks, list items, poll verdicts, and reply on a self-hosted DeskOS.",
   "author": {
-    "name": "Decision Desk contributors"
+    "name": "DeskOS contributors"
   },
   "license": "MIT",
   "server": {
@@ -46,7 +46,7 @@
     "desk_url": {
       "type": "string",
       "title": "Desk URL",
-      "description": "Origin of your self-hosted Decision Desk, e.g. http://127.0.0.1:3000",
+      "description": "Origin of your self-hosted DeskOS, e.g. http://127.0.0.1:3000",
       "required": true
     },
     "desk_token": {

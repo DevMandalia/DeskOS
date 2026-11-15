@@ -23,8 +23,8 @@ export class EmailNotifier implements Notifier {
     if (!this.opts.to || !this.opts.webhookUrl) return;
     const subject =
       event.type === "desk_decision"
-        ? `[Decision Desk] ${String(event.choice ?? "Update")}: ${String(event.item ?? "")}`
-        : `[Decision Desk] ${event.type}`;
+        ? `[DeskOS] ${String(event.choice ?? "Update")}: ${String(event.item ?? "")}`
+        : `[DeskOS] ${event.type}`;
     try {
       await (this.opts.fetchImpl ?? fetch)(this.opts.webhookUrl, {
         method: "POST",

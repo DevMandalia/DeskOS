@@ -43,7 +43,7 @@ async function decisionContract(source: DecisionSource) {
   const verdict = await source.recordVerdict(created.id, {
     choice: "Approve",
     note: "yes",
-    reply: "Approve — yes (via Decision Desk, test)",
+    reply: "Approve — yes (via DeskOS, test)",
     status: STATUS.inFlight,
     lastUpdated: "2026-11-15T00:00:00.000Z",
   });

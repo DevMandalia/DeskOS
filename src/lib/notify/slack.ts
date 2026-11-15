@@ -16,8 +16,8 @@ export class SlackNotifier implements Notifier {
     if (!this.url) return;
     const text =
       event.type === "desk_decision"
-        ? `Decision Desk: ${String(event.choice ?? "")} — ${String(event.item ?? "item")}`
-        : `Decision Desk: ${event.type}`;
+        ? `DeskOS: ${String(event.choice ?? "")} — ${String(event.item ?? "item")}`
+        : `DeskOS: ${event.type}`;
     try {
       await this.fetchImpl(this.url, {
         method: "POST",

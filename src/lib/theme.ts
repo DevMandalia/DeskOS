@@ -1,4 +1,4 @@
-export const THEME_STORAGE_KEY = "decision-desk-theme";
+export const THEME_STORAGE_KEY = "deskos-theme";
 
 export const THEMES = ["light", "dark"] as const;
 export type Theme = (typeof THEMES)[number];

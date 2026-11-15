@@ -16,7 +16,7 @@ export function SiteHeader({ email }: { email?: string | null }) {
         <div className="site-header-start">
           <DrawerToggle drawer="nav" />
           <Link href="/" className="brand">
-            <span className="brand-name">Decision Desk</span>
+            <span className="brand-name">DeskOS</span>
           </Link>
         </div>
         <div className="site-header-end">

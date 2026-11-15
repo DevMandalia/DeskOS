@@ -47,7 +47,7 @@ async function shot(page, name, width, dests) {
 
 async function setTheme(page, theme) {
   await page.addInitScript((value) => {
-    localStorage.setItem("decision-desk-theme", value);
+    localStorage.setItem("deskos-theme", value);
   }, theme);
   await page.emulateMedia({ colorScheme: theme });
 }
@@ -104,7 +104,7 @@ try {
   });
   const page = await rec.newPage();
   await setTheme(page, "light");
-  await page.addInitScript(() => localStorage.removeItem("decision-desk-demo-v1"));
+  await page.addInitScript(() => localStorage.removeItem("deskos-demo-v1"));
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
   await page.screenshot({ path: path.join(OUT, "gif-frames", "01-home.png") });
   await page.getByRole("link", { name: /Start with the oldest/ }).click();

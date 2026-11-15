@@ -1,10 +1,10 @@
-# Decision Desk
+# DeskOS
 
-A self-hosted desk for one operator. Agents raise decisions; you open one page per item, read the **verdict first**, and press **Approve**, **Decline**, or **Discuss**. Tasks live on a source-agnostic Board. Inspired by Brian Armstrong's chief-of-staff agent model.
+A self-hosted decision inbox for one operator. Agents raise decisions; you open one page per item, read the **verdict first**, and press **Approve**, **Decline**, or **Discuss**. Tasks live on a source-agnostic Board. Inspired by Brian Armstrong's chief-of-staff agent model.
 
 This is a kit you run yourself. It is not a hosted product.
 
-![Decision Desk demo](docs/demo.gif)
+![DeskOS demo](docs/demo.gif)
 
 Sample screenshot (fake Acme data only):
 
@@ -15,8 +15,8 @@ Sample screenshot (fake Acme data only):
 The demo is **browser-only**. It uses a `localStorage` TaskStore seeded with obviously fake Acme sample data. Sign-in, chat, webhooks, and the agent API are off.
 
 ```bash
-git clone https://github.com/DevMandalia/decision-desk.git
-cd decision-desk
+git clone https://github.com/DevMandalia/DeskOS.git
+cd DeskOS
 npm install
 npm run demo
 ```
@@ -26,7 +26,7 @@ That builds a static export (`DESK_DEMO=1` / `NEXT_PUBLIC_DESK_DEMO=1`) and serv
 To point a GitHub Pages project site at a sub-path:
 
 ```bash
-NEXT_PUBLIC_BASE_PATH=/decision-desk npm run build:demo
+NEXT_PUBLIC_BASE_PATH=/DeskOS npm run build:demo
 npx serve out
 ```
 
@@ -47,7 +47,7 @@ Open [http://127.0.0.1:3000](http://127.0.0.1:3000). SQLite is the default store
 
 ## Deploy on Vercel (no terminal)
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/DevMandalia/decision-desk&env=OWNER_EMAIL,AUTH_SECRET,AUTH_URL,AUTH_GOOGLE_ID,AUTH_GOOGLE_SECRET&envDescription=Owner%20allowlist%20and%20Auth.js%20secrets.%20Do%20not%20set%20AUTH_DEV_BYPASS.&project-name=decision-desk&repository-name=decision-desk)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/DevMandalia/DeskOS&env=OWNER_EMAIL,AUTH_SECRET,AUTH_URL,AUTH_GOOGLE_ID,AUTH_GOOGLE_SECRET&envDescription=Owner%20allowlist%20and%20Auth.js%20secrets.%20Do%20not%20set%20AUTH_DEV_BYPASS.&project-name=deskos&repository-name=DeskOS)
 
 On Vercel the kit falls back to the in-memory store unless you set `DATABASE_URL` (Postgres) or point `DECISION_SOURCE` / `TASK_STORE` at Notion. `AUTH_DEV_BYPASS` is ignored in production and on Vercel.
 
@@ -83,7 +83,7 @@ Pick adapters with env vars. **Nothing in `src/lib`, `src/app`, or `src/componen
 | `AUTH_PROVIDER` | `google` \| `github` | `google` |
 | `DESK_TIMEZONE` | IANA zone | `America/Los_Angeles` |
 | `DESK_DEMO` / `NEXT_PUBLIC_DESK_DEMO` | `1` | unset |
-| `NEXT_PUBLIC_BASE_PATH` | e.g. `/decision-desk` | empty (site root) |
+| `NEXT_PUBLIC_BASE_PATH` | e.g. `/DeskOS` | empty (site root) |
 
 Notion is an **optional example** adapter (`adapters/notion`). See `adapters/notion/README.md`.
 
@@ -119,7 +119,7 @@ curl -sS -X POST "$DESK/api/v1/decisions/$ID/replies" \
 
 There is **no shared desk webhook**. Optional per-agent HMAC webhooks fire on Approve / Decline (`X-Desk-Signature: sha256=…`). Optional owner email / Slack alerts are separate.
 
-MCP: `dist/decision-desk.mcpb` (stdio). User config is desk URL + agent token. Tools: `raise_decision`, `add_task`, `list_items`, `get_verdict`, `reply_discussion`. Pack with `npm run mcp:pack`. Verify locally with `npm run mcp:test`.
+MCP: `dist/deskos.mcpb` (stdio). User config is desk URL + agent token. Tools: `raise_decision`, `add_task`, `list_items`, `get_verdict`, `reply_discussion`. Pack with `npm run mcp:pack`. Verify locally with `npm run mcp:test`.
 
 ## Roadmap
 
@@ -127,7 +127,7 @@ Not in this release:
 
 - **Background refresh** of the Board / desk from the store while a page is open
 - **Edit-conflict warnings** when a card changed under you
-- **Custom live activity bar** for Decision Desk, built from scratch for desk flows (agent-raised decisions, verdicts, agent working, Approve/Decline preview), inspired by islandcn's motion concepts.
+- **Custom live activity bar** for DeskOS, built from scratch for desk flows (agent-raised decisions, verdicts, agent working, Approve/Decline preview), inspired by islandcn's motion concepts.
 
 ## License
 

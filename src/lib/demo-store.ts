@@ -12,7 +12,7 @@ import {
 import type { Decision, DiscussionMessage } from "@/lib/types";
 import type { Task, TaskBoard } from "@/lib/tasks/types";
 
-const KEY = "decision-desk-demo-v1";
+const KEY = "deskos-demo-v1";
 
 export type DemoState = {
   decisions: Decision[];
@@ -70,7 +70,7 @@ export function recordDemoVerdict(
   if (!row) return null;
   const status =
     choice === "Approve" ? STATUS.inFlight : choice === "Decline" ? STATUS.parked : STATUS.waiting;
-  const line = `${choice} — ${note.trim() || "(demo)"} (via Decision Desk, demo)`;
+  const line = `${choice} — ${note.trim() || "(demo)"} (via DeskOS, demo)`;
   row.reply = row.reply ? `${line}\n${row.reply}` : line;
   row.status = status;
   row.lastChoice = choice;

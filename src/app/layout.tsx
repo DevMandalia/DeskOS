@@ -28,10 +28,10 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Decision Desk",
-    template: "%s · Decision Desk",
+    default: "DeskOS",
+    template: "%s · DeskOS",
   },
-  description: "Decision Desk: private decisions and tasks for one operator.",
+  description: "DeskOS: a decision inbox for your AI agents.",
   robots: {
     index: false,
     follow: false,
