@@ -93,7 +93,7 @@ function DemoHome({ rows }: { rows: BriefRow[] }) {
         {waiting[0] ? (
           <p className="home-cta">
             <Link href={decisionHref(waiting[0].id, { view: "waiting" })} className="home-cta-btn">
-              {startCtaLabel(sort)} →
+              {startCtaLabel()} →
             </Link>
           </p>
         ) : null}

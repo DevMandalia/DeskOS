@@ -44,8 +44,11 @@ export function resolveQueueSort(
   return parseQueueSort(env.QUEUE_SORT) ?? parseQueueSort(env.NEXT_PUBLIC_QUEUE_SORT) ?? fallback;
 }
 
-export function startCtaLabel(sort: QueueSort): string {
-  return sort === "stakes" ? "Start with the highest-stakes" : "Start with the oldest";
+/** Home queue button. Exact copy; independent of QUEUE_SORT. */
+export const START_QUEUE_CTA = "Start with the highest-stakes";
+
+export function startCtaLabel(): string {
+  return START_QUEUE_CTA;
 }
 
 export function waitingListLabel(sort: QueueSort): string {
@@ -119,15 +122,18 @@ export function compareParked(
   );
 }
 
+/** Default days until a new Park asks keep / park again / decline. Env PARK_REVISIT_DAYS overrides. */
+export const DEFAULT_PARK_REVISIT_DAYS = 14;
+
 export function parkRevisitDays(env: Record<string, string | undefined> = process.env): number {
   const raw = Number.parseInt((env.PARK_REVISIT_DAYS ?? "").trim(), 10);
   if (Number.isFinite(raw) && raw >= 1 && raw < 3650) return raw;
-  return 30;
+  return DEFAULT_PARK_REVISIT_DAYS;
 }
 
 export function defaultRevisitDate(
   now: Date | string = new Date(),
-  days = 30,
+  days = DEFAULT_PARK_REVISIT_DAYS,
   timeZone?: string,
 ): string {
   const today = typeof now === "string" && isYmd(now) ? now : todayYmd(now instanceof Date ? now : new Date(), timeZone);

@@ -68,7 +68,7 @@ export default async function HomePage({
           {home.totalWaiting > 0 && next ? (
             <p className="home-cta">
               <Link href={decisionHref(next.id, HOME_SCOPE)} className="home-cta-btn">
-                {startCtaLabel(sort)} →
+                {startCtaLabel()} →
               </Link>
               <a href="#how-to-use" className="home-cta-link">
                 How to use the desk

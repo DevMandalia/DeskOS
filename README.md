@@ -85,9 +85,8 @@ Pick adapters with env vars. **Nothing in `src/lib`, `src/app`, or `src/componen
 | `DESK_TIMEZONE` | IANA zone | `America/Los_Angeles` |
 | `DESK_DEMO` / `NEXT_PUBLIC_DESK_DEMO` | `1` | unset |
 | `NEXT_PUBLIC_BASE_PATH` | e.g. `/DeskOS` | empty (site root) |
-| `QUEUE_SORT` | `stakes` \| `age` | `stakes` in demo, `age` otherwise |
-| `DESK_BRIEF_REQUIRED` | `1` to require the full brief on new raises | unset (optional fields) |
-| `PARK_REVISIT_DAYS` | days until a new Park asks again | `30` |
+| `QUEUE_SORT` | `stakes` \| `age` | `stakes` |
+| `PARK_REVISIT_DAYS` | days until a new Park asks again (existing Parked rows are not rewritten) | `14` |
 
 Notion is an **optional example** adapter (`adapters/notion`). See `adapters/notion/README.md`.
 

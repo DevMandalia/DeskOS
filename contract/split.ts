@@ -1,5 +1,8 @@
 /**
  * One decision per card. Never reject a raise — accept and flag needsSplit.
+ *
+ * This is the only split-detector module. Tune `assessSplit` / the helpers
+ * below after a week of live flags (aggressiveness, not accept-and-flag).
  * Heuristics run on item + decision_needed + next_step (not body).
  */
 

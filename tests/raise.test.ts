@@ -5,10 +5,12 @@ import {
   classifyExisting,
   compareWaiting,
   expireParkIfNeeded,
+  parkRevisitDays,
   parseBriefJson,
   parseQueueSort,
   parseRaiseBrief,
   resolveQueueSort,
+  startCtaLabel,
 } from "../contract";
 import { parseRaise } from "@/lib/raise";
 
@@ -146,9 +148,18 @@ describe("QUEUE_SORT", () => {
     expect(parseQueueSort("age")).toBe("age");
     expect(parseQueueSort("nope")).toBeNull();
   });
+
+  it("keeps the Home queue button at Start with the highest-stakes", () => {
+    expect(startCtaLabel()).toBe("Start with the highest-stakes");
+  });
 });
 
 describe("park sunset", () => {
+  it("defaults new Parks to 14 days and stays configurable", () => {
+    expect(parkRevisitDays({})).toBe(14);
+    expect(parkRevisitDays({ PARK_REVISIT_DAYS: "21" })).toBe(21);
+  });
+
   it("does not reclassify parked rows without a revisit date", () => {
     expect(
       expireParkIfNeeded({ status: "Parked", revisitAt: null }, "2026-11-15", "Waiting on you", "Parked"),
