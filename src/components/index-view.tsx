@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { parkRevisitLabel } from "@/components/decision-brief";
+import { decisionTags, parkRevisitLabel } from "@/components/decision-brief";
 import { raisedByLabel } from "@/lib/agent-ref";
 import { decisionHref, type DeskScope } from "@/lib/nav";
 import { cardAge, displayTitle } from "@/lib/queue";
@@ -29,11 +29,11 @@ export function DeskCard({
   now: Date;
   showStatus?: boolean;
 }) {
+  const tags = decisionTags(row);
   const meta = [
     scope.area ? null : (row.project ?? "Unassigned"),
     raisedByLabel(row.raisedBy),
     showStatus ? STATUS_SHORT[row.status ?? ""] ?? row.status : null,
-    row.costOfDelay ? `${row.costOfDelay} delay` : null,
     parkRevisitLabel(row),
     cardAge(row, now),
   ].filter(Boolean);
@@ -45,6 +45,7 @@ export function DeskCard({
       >
         <h3 className="desk-card-title">{displayTitle(row.item)}</h3>
         <p className="desk-card-meta">{meta.join(" · ")}</p>
+        {tags.length ? <p className="desk-card-tags">{tags.join(" · ")}</p> : null}
       </Link>
     </li>
   );

@@ -17,9 +17,13 @@ export async function POST(request: Request) {
   let body: {
     row_id?: string;
     choice?: string;
+    action?: string;
     note?: string;
     idempotency_key?: string;
     revisit_at?: string | null;
+    door_type?: unknown;
+    cost_of_delay?: unknown;
+    deadline?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -27,16 +31,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
-  if (!body.row_id || !body.choice) {
+  if (!body.row_id) {
     return NextResponse.json({ error: "missing fields" }, { status: 400 });
   }
 
   const result = await executeDecision({
     rowId: body.row_id,
     choice: body.choice,
+    action: body.action,
     note: body.note ?? "",
     idempotencyKey: body.idempotency_key,
     revisitAt: body.revisit_at,
+    doorType: body.door_type,
+    costOfDelay: body.cost_of_delay,
+    deadline: body.deadline,
   });
 
   if (!result.ok) {

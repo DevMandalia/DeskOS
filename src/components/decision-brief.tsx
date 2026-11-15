@@ -1,4 +1,5 @@
-import { briefHasContent } from "../../contract";
+import { BriefOverrides } from "@/components/brief-overrides";
+import { isIncompleteBrief, isOverdueYmd, splitReasonLabel, todayYmd } from "../../contract";
 import type { BriefRow } from "@/lib/types";
 
 const DOOR_LABEL = {
@@ -10,80 +11,148 @@ const COST_LABEL = {
   low: "Low",
   medium: "Medium",
   high: "High",
-  critical: "Critical",
 } as const;
 
-export function parkRevisitLabel(row: Pick<BriefRow, "revisitAt" | "status">, parkedStatus = "Parked"): string | null {
+export function parkRevisitLabel(
+  row: Pick<BriefRow, "revisitAt" | "status" | "revisitState">,
+  parkedStatus = "Parked",
+): string | null {
   if (row.status !== parkedStatus) return null;
-  return row.revisitAt ? `Revisit ${row.revisitAt}` : "no date";
+  return row.revisitAt ? `Revisit ${row.revisitAt}` : "No revisit date";
 }
 
-/** Brief fields above the verdict buttons. Hidden when the raise had none. */
-export function DecisionBrief({ row }: { row: BriefRow }) {
-  const has = briefHasContent({
-    kind: row.kind ?? null,
-    options: row.options ?? null,
-    recommendation: row.recommendation ?? null,
-    door: row.door ?? null,
-    costOfDelay: row.costOfDelay ?? null,
-    defaultIfTimeout: row.defaultIfTimeout ?? null,
-    deadline: row.deadline ?? null,
-    parentId: row.parentDecisionId ?? null,
-    revisitAt: row.revisitAt ?? null,
-  });
+export function decisionTags(row: BriefRow, today = todayYmd()): string[] {
+  const tags: string[] = [];
+  if (row.revisitState === "expired") tags.push("Revisit");
+  if (row.needsSplit) tags.push("Needs split");
+  if (
+    isIncompleteBrief({
+      options: row.options ?? null,
+      recommendation: row.recommendation ?? null,
+      doorType: row.doorType ?? null,
+      costOfDelay: row.costOfDelay ?? null,
+      deadline: row.deadline ?? null,
+    })
+  ) {
+    tags.push("Incomplete brief");
+  }
+  if (isOverdueYmd(row.deadline ?? null, today)) tags.push("Overdue");
+  if (row.costOfDelay) tags.push(`${COST_LABEL[row.costOfDelay]} delay`);
+  if (row.doorType) tags.push(row.doorType === "one_way" ? "One-way" : "Two-way");
+  return tags;
+}
+
+export function DecisionTags({ row }: { row: BriefRow }) {
+  const tags = decisionTags(row);
+  if (tags.length === 0) return null;
+  return (
+    <ul className="decision-tags">
+      {tags.map((tag) => (
+        <li key={tag} className="decision-tag">
+          {tag}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Brief fields above the verdict buttons. */
+export function DecisionBrief({ row, essentialsOnly = false }: { row: BriefRow; essentialsOnly?: boolean }) {
   const park = parkRevisitLabel(row);
-  if (!has && !park) return null;
+  const def = row.defaultIfNoAnswer;
+  const showDefault = Boolean(def && row.deadline);
+  if (essentialsOnly) {
+    return (
+      <div className="decision-brief decision-brief-lite">
+        <DecisionTags row={row} />
+        {row.doorType || row.costOfDelay || row.deadline ? (
+          <dl>
+            {row.doorType ? (
+              <div className="decision-brief-row">
+                <dt>Door</dt>
+                <dd>{DOOR_LABEL[row.doorType]}</dd>
+              </div>
+            ) : null}
+            {row.costOfDelay ? (
+              <div className="decision-brief-row">
+                <dt>Cost of delay</dt>
+                <dd>{COST_LABEL[row.costOfDelay]}</dd>
+              </div>
+            ) : null}
+            {row.deadline ? (
+              <div className="decision-brief-row">
+                <dt>Deadline</dt>
+                <dd>{row.deadline}</dd>
+              </div>
+            ) : null}
+          </dl>
+        ) : null}
+        <BriefOverrides row={row} />
+      </div>
+    );
+  }
 
   return (
-    <dl className="decision-brief">
-      {row.options?.length ? (
-        <div className="decision-brief-row">
-          <dt>Options</dt>
-          <dd>
-            <ol>
-              {row.options.map((option) => (
-                <li key={option}>{option}</li>
-              ))}
-            </ol>
-          </dd>
-        </div>
+    <div className="decision-brief">
+      <DecisionTags row={row} />
+      {row.needsSplit ? <p className="decision-brief-note">{splitReasonLabel(row.splitReason)}</p> : null}
+      {row.revisitState === "expired" ? (
+        <p className="decision-brief-note">Revisit — date passed{row.revisitAt ? ` (${row.revisitAt})` : ""}.</p>
       ) : null}
-      {row.recommendation ? (
-        <div className="decision-brief-row">
-          <dt>Recommendation</dt>
-          <dd>{row.recommendation}</dd>
-        </div>
-      ) : null}
-      {row.door ? (
-        <div className="decision-brief-row">
-          <dt>Door</dt>
-          <dd>{DOOR_LABEL[row.door]}</dd>
-        </div>
-      ) : null}
-      {row.costOfDelay ? (
-        <div className="decision-brief-row">
-          <dt>Cost of delay</dt>
-          <dd>{COST_LABEL[row.costOfDelay]}</dd>
-        </div>
-      ) : null}
-      {row.defaultIfTimeout ? (
-        <div className="decision-brief-row">
-          <dt>Default if no answer</dt>
-          <dd>{row.defaultIfTimeout}</dd>
-        </div>
-      ) : null}
-      {row.deadline ? (
-        <div className="decision-brief-row">
-          <dt>Deadline</dt>
-          <dd>{row.deadline}</dd>
-        </div>
-      ) : null}
-      {park ? (
-        <div className="decision-brief-row">
-          <dt>Parked until</dt>
-          <dd>{park === "no date" ? "no date" : park.replace("Revisit ", "")}</dd>
-        </div>
-      ) : null}
-    </dl>
+      <dl>
+        {row.options?.length ? (
+          <div className="decision-brief-row">
+            <dt>Options</dt>
+            <dd>
+              <ol>
+                {row.options.map((option) => (
+                  <li key={option}>{option}</li>
+                ))}
+              </ol>
+            </dd>
+          </div>
+        ) : null}
+        {row.recommendation ? (
+          <div className="decision-brief-row">
+            <dt>Recommendation</dt>
+            <dd>{row.recommendation}</dd>
+          </div>
+        ) : null}
+        {row.doorType ? (
+          <div className="decision-brief-row">
+            <dt>Door</dt>
+            <dd>{DOOR_LABEL[row.doorType]}</dd>
+          </div>
+        ) : null}
+        {row.costOfDelay ? (
+          <div className="decision-brief-row">
+            <dt>Cost of delay</dt>
+            <dd>{COST_LABEL[row.costOfDelay]}</dd>
+          </div>
+        ) : null}
+        {row.deadline ? (
+          <div className="decision-brief-row">
+            <dt>Deadline</dt>
+            <dd>{row.deadline}</dd>
+          </div>
+        ) : null}
+        {showDefault && def ? (
+          <div className="decision-brief-row">
+            <dt>If no answer</dt>
+            <dd>
+              If no answer by {row.deadline}, default is {def.choice}
+              {def.note ? ` — ${def.note}` : ""}.
+            </dd>
+          </div>
+        ) : null}
+        {park ? (
+          <div className="decision-brief-row">
+            <dt>Parked until</dt>
+            <dd>{park === "No revisit date" ? park : park.replace("Revisit ", "")}</dd>
+          </div>
+        ) : null}
+      </dl>
+      <BriefOverrides row={row} />
+    </div>
   );
 }

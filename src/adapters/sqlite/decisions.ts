@@ -1,4 +1,4 @@
-import { briefJsonOf, withBrief } from "@/lib/brief-fields";
+import { applyPatchToRow, briefJsonOf, withBrief } from "@/lib/brief-fields";
 import { briefFromRecord } from "../../../contract";
 import { idsEqual } from "@/lib/ids";
 import { spansFromPlain } from "@/lib/rich";
@@ -6,6 +6,7 @@ import { STATUS } from "@/lib/decide";
 import type {
   Decision,
   DecisionCreate,
+  DecisionPatch,
   DecisionSource,
   DecisionVerdictInput,
   DeskBlock,
@@ -71,8 +72,15 @@ export class SqliteDecisionSource implements DecisionSource {
         lastUpdated: new Date().toISOString(),
         raisedBy: raised,
         lastChoice: null,
+        needsSplit: input.needsSplit ?? null,
+        splitReason: input.splitReason ?? null,
       },
-      briefFromRecord(input),
+      briefFromRecord({
+        ...input,
+        parentId: input.parentId,
+        needsSplit: input.needsSplit,
+        splitReason: input.splitReason,
+      }),
     );
     const body =
       input.body == null
@@ -121,9 +129,24 @@ export class SqliteDecisionSource implements DecisionSource {
         verdict.reply,
         verdict.lastUpdated,
         verdict.choice,
-        briefJsonOf(current, { revisitAt: verdict.revisitAt ?? current.revisitAt ?? null }),
+        briefJsonOf(current, {
+          revisitAt: verdict.revisitAt ?? current.revisitAt ?? null,
+          revisitState: verdict.revisitState ?? current.revisitState ?? null,
+        }),
         current.id,
       );
+    return (await this.get(id))!;
+  }
+
+  async patch(id: string, patch: DecisionPatch): Promise<Decision> {
+    const current = await this.get(id);
+    if (!current) throw new Error("not found");
+    const next = applyPatchToRow(current, patch);
+    this.db()
+      .prepare(
+        "UPDATE decisions SET status = ?, reply = ?, last_updated = ?, last_choice = ?, brief_json = ? WHERE id = ?",
+      )
+      .run(next.status, next.reply, next.lastUpdated, next.lastChoice, briefJsonOf(next), current.id);
     return (await this.get(id))!;
   }
 

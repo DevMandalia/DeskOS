@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { DecisionBrief } from "@/components/decision-brief";
+import { DecisionPanel } from "@/components/decision-panel";
 import { DemoDesk } from "@/components/demo-desk";
 import { DeskFrame } from "@/components/desk-frame";
 import { isStaticDemo } from "@/lib/demo-mode";
-import { startCtaLabel, waitingListLabel } from "../../contract";
+import { defaultRevisitDate, parkRevisitDays, startCtaLabel, waitingListLabel } from "../../contract";
 import { BOARD_HREF, buildHome, decisionHref, deskHref, legacyListHref, type DeskScope } from "@/lib/nav";
 import { ageDays, cardAge, displayTitle, queueOrderHint, queueSort } from "@/lib/queue";
 import { listRows } from "@/lib/rows";
@@ -94,13 +96,37 @@ export default async function HomePage({
           </p>
         </section>
 
-        {home.oldest.length > 0 ? (
+        {next ? (
+          <section
+            className={`home-object ${next.revisitState === "expired" ? "home-object-revisit" : ""}`}
+            aria-labelledby="home-top"
+          >
+            <p className="kicker">{next.revisitState === "expired" ? "Revisit" : "Next up"}</p>
+            <h2 id="home-top" className="decision-title">
+              <Link href={decisionHref(next.id, HOME_SCOPE)}>{displayTitle(next.item)}</Link>
+            </h2>
+            <p className="decision-meta">
+              {next.project ?? "Unassigned"}
+              {raisedByLabel(next.raisedBy) ? ` · ${raisedByLabel(next.raisedBy)}` : ""} · {cardAge(next, now)}
+            </p>
+            <p className="verdict-need">{next.decisionNeeded ?? "No decision text on this row."}</p>
+            <DecisionBrief row={next} essentialsOnly={next.revisitState !== "expired"} />
+            <DecisionPanel
+              row={next}
+              prevHref={null}
+              nextHref={null}
+              defaultParkDate={defaultRevisitDate(now, parkRevisitDays())}
+            />
+          </section>
+        ) : null}
+
+        {home.oldest.length > 1 ? (
           <section className="home-section" aria-labelledby="home-oldest">
             <h2 id="home-oldest" className="home-h2">
               {waitingListLabel(sort)}
             </h2>
             <ol className="home-list">
-              {home.oldest.map((row) => (
+              {home.oldest.slice(1, 4).map((row) => (
                 <li key={row.id}>
                   <Link href={decisionHref(row.id, HOME_SCOPE)} className="home-item">
                     <span className="home-item-title">{displayTitle(row.item)}</span>

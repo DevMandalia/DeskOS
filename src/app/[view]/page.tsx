@@ -82,18 +82,41 @@ export default async function ViewPage({
             ) : null}
           </p>
         </header>
-        <DeskList
-          rows={rows}
-          scope={scope}
-          now={now}
-          label={label}
-          showStatus={scope.view === "all"}
-          emptyText={
-            scope.view === "waiting"
-              ? `Nothing is waiting on you${where}.`
-              : `Nothing ${label.toLowerCase()}${where}.`
-          }
-        />
+        {scope.view === "done" ? (
+          <>
+            <h2 className="home-h2">Done</h2>
+            <DeskList
+              rows={rows.filter((row) => row.status === "Done")}
+              scope={scope}
+              now={now}
+              label="Done"
+              emptyText={`Nothing done${where}.`}
+            />
+            <div className="done-group">
+              <h2 className="home-h2">Declined</h2>
+              <DeskList
+                rows={rows.filter((row) => row.status === "Declined")}
+                scope={scope}
+                now={now}
+                label="Declined"
+                emptyText={`Nothing declined${where}.`}
+              />
+            </div>
+          </>
+        ) : (
+          <DeskList
+            rows={rows}
+            scope={scope}
+            now={now}
+            label={label}
+            showStatus={scope.view === "all"}
+            emptyText={
+              scope.view === "waiting"
+                ? `Nothing is waiting on you${where}.`
+                : `Nothing ${label.toLowerCase()}${where}.`
+            }
+          />
+        )}
       </div>
     </DeskFrame>
   );

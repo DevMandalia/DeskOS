@@ -31,14 +31,14 @@ async function decisionContract(source: DecisionSource) {
     raisedBy: raised,
     options: ["Ship this week", "Wait"],
     recommendation: "Ship this week",
-    door: "two_way",
+    doorType: "two_way",
     costOfDelay: "low",
     deadline: "2026-11-20",
   });
   expect(created.item).toBe("Example: ship the sample?");
   expect(created.status).toBe(STATUS.waiting);
   expect(created.raisedBy?.name).toBe("Acme Test");
-  expect(created.door).toBe("two_way");
+  expect(created.doorType).toBe("two_way");
   expect(created.costOfDelay).toBe("low");
 
   const listed = await source.list();

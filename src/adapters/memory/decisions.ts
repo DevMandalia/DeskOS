@@ -1,11 +1,12 @@
 import { configuredColumns, resolveColumns } from "@/lib/board";
-import { briefOf, withBrief } from "@/lib/brief-fields";
+import { applyPatchToRow, briefOf, withBrief } from "@/lib/brief-fields";
 import { STATUS } from "@/lib/decide";
 import { idsEqual } from "@/lib/ids";
 import { spansFromPlain } from "@/lib/rich";
 import type {
   Decision,
   DecisionCreate,
+  DecisionPatch,
   DecisionSource,
   DecisionVerdictInput,
   DeskBlock,
@@ -81,6 +82,16 @@ export class MemoryDecisionSource implements DecisionSource {
     row.lastUpdated = verdict.lastUpdated;
     row.lastChoice = verdict.choice;
     row.revisitAt = verdict.revisitAt ?? row.revisitAt ?? null;
+    if (verdict.revisitState !== undefined) row.revisitState = verdict.revisitState;
+    await persistMemory();
+    return clone(row);
+  }
+
+  async patch(id: string, patch: DecisionPatch): Promise<Decision> {
+    const state = this.snap();
+    const row = state.decisions.find((d) => idsEqual(d.id, id));
+    if (!row) throw new Error("not found");
+    Object.assign(row, applyPatchToRow(row, patch));
     await persistMemory();
     return clone(row);
   }

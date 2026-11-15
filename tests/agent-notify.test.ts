@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { notifyAgent, verdictEvent } from "@/lib/agent-notify";
+import { notifyAgent, splitRequestEvent, verdictEvent } from "@/lib/agent-notify";
 import { verifySignature } from "@/lib/keys";
 import type { Agent, Decision } from "@/lib/types";
 
@@ -54,5 +54,25 @@ describe("per-agent HMAC webhook", () => {
     const fetchImpl = vi.fn<typeof fetch>();
     await notifyAgent({ ...agent, webhookUrl: null, webhookSecret: null }, verdictEvent(row, "Approve", "", ""), fetchImpl);
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("keeps desk_verdict fields and allows choice Reopen", () => {
+    const event = verdictEvent(row, "Reopen", "back", "2026-11-15T00:00:00.000Z");
+    expect(event.type).toBe("desk_verdict");
+    expect(event.choice).toBe("Reopen");
+    expect(event.decision_id).toBe(row.id);
+    expect(event.item).toBe(row.item);
+  });
+
+  it("sends desk_split_request on send-back", () => {
+    const event = splitRequestEvent(row, "split these", "2026-11-15T00:00:00.000Z");
+    expect(event).toEqual({
+      type: "desk_split_request",
+      decision_id: row.id,
+      item: row.item,
+      note: "split these",
+      at: "2026-11-15T00:00:00.000Z",
+      agent_id: "agent-acme-ops",
+    });
   });
 });

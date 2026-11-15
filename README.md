@@ -95,7 +95,7 @@ Notion is an **optional example** adapter (`adapters/notion`). See `adapters/not
 
 Create a key in **Settings**. The plaintext `ddk_…` value is shown once and stored hashed. The key is the agent's identity. A lead can register a sub-agent (`POST /api/v1/agents`); every decision and task records `raised_by` (and optional parent). Board cards and Waiting show that tag.
 
-Optional fields on `raise_decision` (all backward compatible — a title-only body still works): `kind`, `options`, `recommendation`, `door` (`two_way` \| `one_way`), `cost_of_delay` (`low` \| `medium` \| `high` \| `critical`), `default_if_timeout`, `deadline` (`YYYY-MM-DD`), `parent_id`. Bundles and non-decisions return **422**. Set `DESK_BRIEF_REQUIRED=1` to return **400** when the brief is missing. New raises only; existing rows are never rewritten.
+Optional fields on `raise_decision` (all backward compatible — a title-only body still works): `options` (2–7 strings), `recommendation`, `door_type` (`one_way` \| `two_way`), `cost_of_delay` (`high` \| `medium` \| `low`), `deadline` (`YYYY-MM-DD`), `default_if_no_answer` (`{ "choice": "Approve"|"Decline"|"Park", "note"? }`), `needs_split` (boolean), `parent_id`. Invalid *present* values return **400** with `field`. Bundles and review tasks are **accepted** and flagged `needsSplit` (never 4xx). `GET /api/v1/decisions` keeps store order unless `?sort=stakes` or `?sort=age`.
 
 ```bash
 # raise_decision (old agents: title is enough)
@@ -108,7 +108,7 @@ curl -sS -X POST "$DESK/api/v1/decisions" \
 curl -sS -X POST "$DESK/api/v1/decisions" \
   -H "Authorization: Bearer $DESK_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"title":"Renew the staging cert?","decision_needed":"Buy another year?","options":["Renew","Let it lapse"],"recommendation":"Renew","door":"two_way","cost_of_delay":"low","deadline":"2026-12-01"}'
+  -d '{"title":"Renew the staging cert?","decision_needed":"Buy another year?","options":["Renew","Let it lapse"],"recommendation":"Renew","door_type":"two_way","cost_of_delay":"low","deadline":"2026-12-01"}'
 
 # add_task
 curl -sS -X POST "$DESK/api/v1/tasks" \

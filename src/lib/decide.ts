@@ -1,8 +1,18 @@
-import { VERDICT_CHOICES, isVerdictChoice, verdictBucket, type VerdictChoice } from "../../contract";
+import {
+  OWNER_ACTIONS,
+  VERDICT_CHOICES,
+  isOwnerAction,
+  isVerdictChoice,
+  verdictBucket,
+  type OwnerAction,
+  type VerdictChoice,
+} from "../../contract";
 import { deskTimezone } from "@/lib/env";
 
 export const CHOICES = VERDICT_CHOICES;
+export const ACTIONS = OWNER_ACTIONS;
 export type Choice = VerdictChoice;
+export type Action = OwnerAction;
 
 export const STATUS = {
   waiting: "Waiting on you",
@@ -27,8 +37,20 @@ export function isChoice(value: string): value is Choice {
   return isVerdictChoice(value);
 }
 
+export function isAction(value: string): value is Action {
+  return isOwnerAction(value);
+}
+
 export function statusForChoice(choice: Choice): StatusName {
   return STATUS_BY_BUCKET[verdictBucket(choice)];
+}
+
+export function statusForAction(action: Action, current: string | null | undefined): StatusName {
+  if (action === "Reopen" || action === "Discuss" || action === "Split" || action === "OneDecision") {
+    return STATUS.waiting;
+  }
+  if (isChoice(action)) return statusForChoice(action);
+  return (current as StatusName) ?? STATUS.waiting;
 }
 
 export function normalizeOffset(timeZoneName: string): string {
@@ -69,19 +91,20 @@ export function formatIsoPT(date: Date): string {
 }
 
 export function formatReply(
-  choice: Choice,
+  choice: Action,
   note: string,
   at: Date,
   extra?: { revisitAt?: string | null },
 ): string {
   const iso = formatIsoInZone(at);
   const trimmed = note.trim();
+  const label = choice === "Split" ? "Send back to split" : choice === "OneDecision" ? "One decision" : choice;
   const revisit =
     choice === "Park" && extra?.revisitAt ? ` (revisit ${extra.revisitAt})` : "";
   if (trimmed) {
-    return `${choice} — ${trimmed}${revisit} (via DeskOS, ${iso})`;
+    return `${label} — ${trimmed}${revisit} (via DeskOS, ${iso})`;
   }
-  return `${choice} —${revisit} (via DeskOS, ${iso})`;
+  return `${label} —${revisit} (via DeskOS, ${iso})`;
 }
 
 export function prependReply(
@@ -95,14 +118,15 @@ export function prependReply(
 
 export function isDuplicateReply(
   existing: string | null | undefined,
-  choice: Choice,
+  choice: Action,
   note: string,
   now = Date.now(),
 ): boolean {
   if (!existing) return false;
   const first = existing.split("\n")[0]?.trim() ?? "";
   const trimmed = note.trim();
-  const prefix = trimmed ? `${choice} — ${trimmed} (` : `${choice} — (`;
+  const label = choice === "Split" ? "Send back to split" : choice === "OneDecision" ? "One decision" : choice;
+  const prefix = trimmed ? `${label} — ${trimmed} (` : `${label} — (`;
   if (!first.startsWith(prefix) || !first.includes("via DeskOS")) {
     return false;
   }
@@ -119,7 +143,7 @@ export type NotifyPayload = {
   item: string;
   project: string | null;
   owner: string | null;
-  choice: Choice;
+  choice: Action;
   note: string;
   at: string;
   agent_id?: string | null;
@@ -154,6 +178,10 @@ export const STATUS_RANK: Record<string, number> = {
 
 export function isClosedStatus(status: string | null | undefined): boolean {
   return status === STATUS.done || status === STATUS.declined;
+}
+
+export function isClosedDecision(row: { lastChoice?: string | null; status?: string | null }): boolean {
+  return row.lastChoice === "Approve" || row.lastChoice === "Decline" || row.status === STATUS.declined;
 }
 
 export function compareStatus(a: string | null, b: string | null): number {

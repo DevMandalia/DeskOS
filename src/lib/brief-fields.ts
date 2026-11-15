@@ -6,34 +6,42 @@ import {
   serializeBrief,
   type DecisionBrief,
 } from "../../contract";
-import type { Decision, DecisionCreate } from "@/lib/types";
+import type { Decision, DecisionCreate, DecisionPatch } from "@/lib/types";
 
 export function briefOf(input: DecisionCreate | Decision): DecisionBrief {
   return briefFromRecord({
-    kind: input.kind,
     options: input.options,
     recommendation: input.recommendation,
-    door: input.door,
+    doorType: input.doorType,
     costOfDelay: input.costOfDelay,
-    defaultIfTimeout: input.defaultIfTimeout,
     deadline: input.deadline,
-    parentDecisionId: "parentDecisionId" in input ? input.parentDecisionId : undefined,
+    defaultIfNoAnswer: "defaultIfNoAnswer" in input ? input.defaultIfNoAnswer : undefined,
+    briefOverrides: "briefOverrides" in input ? input.briefOverrides : undefined,
+    parentId: input.parentId,
+    needsSplit: "needsSplit" in input ? input.needsSplit : undefined,
+    splitReason: "splitReason" in input ? input.splitReason : undefined,
+    splitSentBackAt: "splitSentBackAt" in input ? input.splitSentBackAt : undefined,
     revisitAt: "revisitAt" in input ? input.revisitAt : null,
+    revisitState: "revisitState" in input ? input.revisitState : null,
   });
 }
 
 export function withBrief<T extends Decision>(row: T, brief: DecisionBrief): T {
   return {
     ...row,
-    kind: brief.kind,
     options: brief.options,
     recommendation: brief.recommendation,
-    door: brief.door,
+    doorType: brief.doorType,
     costOfDelay: brief.costOfDelay,
-    defaultIfTimeout: brief.defaultIfTimeout,
+    defaultIfNoAnswer: brief.defaultIfNoAnswer,
     deadline: brief.deadline,
-    parentDecisionId: brief.parentId,
+    parentId: brief.parentId,
+    briefOverrides: brief.briefOverrides,
+    needsSplit: brief.needsSplit,
+    splitReason: brief.splitReason,
+    splitSentBackAt: brief.splitSentBackAt,
     revisitAt: brief.revisitAt,
+    revisitState: brief.revisitState,
   };
 }
 
@@ -48,5 +56,11 @@ export function hydrateStoredDecision(row: Decision, briefJson?: string | null):
     ...hydrated,
     lastChoice: hydrated.lastChoice ?? parseChoiceFromReply(hydrated.reply),
     revisitAt: hydrated.revisitAt ?? parseRevisitFromReply(hydrated.reply),
+    parentId: hydrated.parentId ?? null,
   };
+}
+
+export function applyPatchToRow(row: Decision, patch: DecisionPatch): Decision {
+  const next = { ...row, ...patch };
+  return withBrief(next, briefOf(next));
 }

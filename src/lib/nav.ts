@@ -163,7 +163,7 @@ export type HomeModel = {
  * Home: counts by status and area, the oldest waiting items, and what changed
  * most recently (by Last updated, any status).
  */
-export function buildHome(rows: BriefRow[], limit = 5): HomeModel {
+export function buildHome(rows: BriefRow[], limit = 4): HomeModel {
   const counts = (["waiting", "flight", "parked", "done"] as View[]).map((view) => ({
     view,
     label: VIEW_LABEL[view],

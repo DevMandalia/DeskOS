@@ -1,55 +1,73 @@
 import { describe, expect, it } from "vitest";
 
-import { assessRaise, classifyExisting, parseBriefJson, resolveQueueSort } from "../contract";
+import {
+  assessSplit,
+  classifyExisting,
+  compareWaiting,
+  expireParkIfNeeded,
+  parseBriefJson,
+  parseQueueSort,
+  parseRaiseBrief,
+  resolveQueueSort,
+} from "../contract";
 import { parseRaise } from "@/lib/raise";
 
-describe("raise_decision gate", () => {
+describe("raise_decision", () => {
   it("lets a title-only raise through (old agents)", () => {
     const parsed = parseRaise({ title: "Renew the staging cert?" });
     expect(parsed.ok).toBe(true);
-    if (parsed.ok) expect(parsed.item).toBe("Renew the staging cert?");
+    if (parsed.ok) {
+      expect(parsed.item).toBe("Renew the staging cert?");
+      expect(parsed.brief.needsSplit).toBe(false);
+    }
   });
 
-  it("rejects a bundled raise with 422", () => {
+  it("accepts a bundled raise and flags needsSplit", () => {
     const parsed = parseRaise({
       title: "Content OS proposal: open decisions",
       decision_needed: "Pick pillars? Cadence? Format?",
     });
-    expect(parsed.ok).toBe(false);
-    if (!parsed.ok) {
-      expect(parsed.status).toBe(422);
-      expect(parsed.code).toBe("not_one_decision");
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.brief.needsSplit).toBe(true);
+      expect(parsed.brief.splitReason).toBe("multiple_questions");
     }
   });
 
-  it("rejects a reading task with 422", () => {
+  it("accepts a reading task and flags review_task", () => {
     const parsed = parseRaise({
       title: "Rituals planning read",
       decision_needed: "Read the rituals planning notes and share input.",
     });
-    expect(parsed.ok).toBe(false);
-    if (!parsed.ok) {
-      expect(parsed.status).toBe(422);
-      expect(parsed.code).toBe("not_a_decision");
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.brief.needsSplit).toBe(true);
+      expect(parsed.brief.splitReason).toBe("review_task");
     }
   });
 
-  it("rejects kind=task", () => {
-    const parsed = parseRaise({ title: "File the invoice", kind: "task" });
-    expect(parsed.ok).toBe(false);
-    if (!parsed.ok) expect(parsed.code).toBe("kind_not_decision");
+  it("trusts needs_split false and skips heuristics", () => {
+    const parsed = parseRaise({
+      title: "Pick pillars? Cadence?",
+      decision_needed: "Pick pillars? Cadence?",
+      needs_split: false,
+    });
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) expect(parsed.brief.needsSplit).toBe(false);
   });
 
-  it("requires the brief only when DESK_BRIEF_REQUIRED=1", () => {
-    const optional = parseRaise({ title: "Ship the sample?" });
-    expect(optional.ok).toBe(true);
-    const required = parseRaise({ title: "Ship the sample?" }, { DESK_BRIEF_REQUIRED: "1" });
-    expect(required.ok).toBe(false);
-    if (!required.ok) {
-      expect(required.status).toBe(400);
-      expect(required.code).toBe("brief_incomplete");
-      expect(required.missing).toContain("options");
-    }
+  it("returns 400 for invalid present enums", () => {
+    const parsed = parseRaiseBrief({ title: "x", door_type: "two-way", cost_of_delay: "Medium" });
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.field).toBe("door_type");
+    const cost = parseRaiseBrief({ title: "x", cost_of_delay: "critical" });
+    expect(cost.ok).toBe(false);
+  });
+
+  it("returns 400 for short options", () => {
+    const parsed = parseRaise({ title: "Ship?", options: ["Only one"] });
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.field).toBe("options");
   });
 
   it("stores optional brief fields", () => {
@@ -58,15 +76,18 @@ describe("raise_decision gate", () => {
       decision_needed: "Buy another year?",
       options: ["Renew", "Lapse"],
       recommendation: "Renew",
-      door: "two_way",
+      door_type: "two_way",
       cost_of_delay: "low",
       deadline: "2026-12-01",
+      default_if_no_answer: { choice: "Approve", note: "Renew" },
     });
     expect(parsed.ok).toBe(true);
     if (parsed.ok) {
-      expect(parsed.brief.door).toBe("two_way");
+      expect(parsed.brief.doorType).toBe("two_way");
       expect(parsed.brief.costOfDelay).toBe("low");
       expect(parsed.brief.options).toEqual(["Renew", "Lapse"]);
+      expect(parsed.brief.defaultIfNoAnswer).toEqual({ choice: "Approve", note: "Renew" });
+      expect(parsed.brief.needsSplit).toBe(false);
     }
   });
 });
@@ -91,27 +112,81 @@ describe("classifyExisting (proposal only, never writes)", () => {
   });
 });
 
-describe("assessRaise kind", () => {
-  it("treats kind=bundle as not_one_decision", () => {
-    const fail = assessRaise({ title: "Program", kind: "bundle" });
-    expect(fail?.code).toBe("not_one_decision");
+describe("assessSplit", () => {
+  it("does not treat a single question with options as a bundle", () => {
+    const result = assessSplit({
+      item: "Renew domain?",
+      decisionNeeded: "Buy another year?",
+      hasOptions: true,
+    });
+    expect(result.needsSplit).toBe(false);
+  });
+
+  it("does not flag a complete raise just because title, needed, and next step are three lines", () => {
+    const result = assessSplit({
+      item: "Renew the staging cert?",
+      decisionNeeded: "Buy another year at $14?",
+      nextStep: "Ops will pay the registrar if you approve.",
+    });
+    expect(result.needsSplit).toBe(false);
   });
 });
 
 describe("QUEUE_SORT", () => {
-  it("defaults demo to stakes and live to age", () => {
-    expect(resolveQueueSort({ DESK_DEMO: "1" })).toBe("stakes");
-    expect(resolveQueueSort({})).toBe("age");
-    expect(resolveQueueSort({ QUEUE_SORT: "age", DESK_DEMO: "1" })).toBe("age");
+  it("defaults to stakes unless QUEUE_SORT is set", () => {
+    expect(resolveQueueSort({})).toBe("stakes");
+    expect(resolveQueueSort({}, "age")).toBe("age");
+    expect(resolveQueueSort({ QUEUE_SORT: "age" }, "stakes")).toBe("age");
+  });
+
+  it("GET ?sort= is opt-in; omitted keeps store order", () => {
+    expect(parseQueueSort(null)).toBeNull();
+    expect(parseQueueSort("")).toBeNull();
+    expect(parseQueueSort("stakes")).toBe("stakes");
+    expect(parseQueueSort("age")).toBe("age");
+    expect(parseQueueSort("nope")).toBeNull();
+  });
+});
+
+describe("park sunset", () => {
+  it("does not reclassify parked rows without a revisit date", () => {
+    expect(
+      expireParkIfNeeded({ status: "Parked", revisitAt: null }, "2026-11-15", "Waiting on you", "Parked"),
+    ).toBeNull();
+  });
+
+  it("expires a scheduled park whose date is before today", () => {
+    expect(
+      expireParkIfNeeded(
+        { status: "Parked", revisitAt: "2026-11-01", revisitState: "scheduled" },
+        "2026-11-15",
+        "Waiting on you",
+        "Parked",
+      ),
+    ).toEqual({ status: "Waiting on you", revisitState: "expired" });
+  });
+});
+
+describe("stakes formula", () => {
+  it("puts overdue ahead of high cost", () => {
+    const overdue = { item: "old", lastUpdated: "2026-11-12", costOfDelay: "low" as const, deadline: "2026-11-01" };
+    const high = { item: "high", lastUpdated: "2026-11-01", costOfDelay: "high" as const, deadline: "2026-12-01" };
+    expect(compareWaiting(overdue, high, "stakes", "2026-11-15")).toBeLessThan(0);
+  });
+
+  it("treats missing cost as medium", () => {
+    const missing = { item: "m", lastUpdated: "2026-11-10", costOfDelay: null };
+    const high = { item: "h", lastUpdated: "2026-11-10", costOfDelay: "high" as const };
+    expect(compareWaiting(high, missing, "stakes", "2026-11-15")).toBeLessThan(0);
   });
 });
 
 describe("brief json", () => {
-  it("round-trips optional fields", () => {
+  it("round-trips optional fields including old door key", () => {
     const parsed = parseBriefJson(
       JSON.stringify({ door: "one_way", costOfDelay: "high", deadline: "2026-11-20" }),
     );
-    expect(parsed.door).toBe("one_way");
+    expect(parsed.doorType).toBe("one_way");
     expect(parsed.costOfDelay).toBe("high");
     expect(parsed.deadline).toBe("2026-11-20");
   });

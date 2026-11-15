@@ -63,8 +63,7 @@ export default async function DecisionPage({
   const hrefFor = (target: string) => decisionHref(target, scope);
   const blocks = await getRowBody(row);
   const thread = await listDiscussion(row.id);
-  const closed =
-    row.lastChoice === "Approve" || row.lastChoice === "Decline" || row.lastChoice === "Park";
+  const closed = row.lastChoice === "Approve" || row.lastChoice === "Decline";
   const meta = [
     row.project ?? "Unassigned",
     raisedByLabel(row.raisedBy) ? `Raised by ${raisedByLabel(row.raisedBy)}` : null,

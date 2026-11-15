@@ -3,20 +3,25 @@ import {
   compareWaiting,
   queueOrderHint,
   resolveQueueSort,
+  todayYmd,
   type QueueSort,
 } from "../../contract";
-import { isStaticDemo } from "@/lib/demo-mode";
 import { deskTimezone } from "@/lib/env";
 import { STATUS, compareStatus } from "@/lib/decide";
 import type { BriefRow } from "@/lib/types";
 
 export function queueSort(): QueueSort {
-  return resolveQueueSort({
-    QUEUE_SORT: process.env.QUEUE_SORT,
-    NEXT_PUBLIC_QUEUE_SORT: process.env.NEXT_PUBLIC_QUEUE_SORT,
-    DESK_DEMO: process.env.DESK_DEMO,
-    NEXT_PUBLIC_DESK_DEMO: isStaticDemo() ? "1" : process.env.NEXT_PUBLIC_DESK_DEMO,
-  });
+  return resolveQueueSort(
+    {
+      QUEUE_SORT: process.env.QUEUE_SORT,
+      NEXT_PUBLIC_QUEUE_SORT: process.env.NEXT_PUBLIC_QUEUE_SORT,
+    },
+    "stakes",
+  );
+}
+
+export function queueToday(now = new Date()): string {
+  return todayYmd(now, deskTimezone());
 }
 
 export { queueOrderHint };
@@ -91,8 +96,8 @@ export function isWaiting(row: BriefRow): boolean {
   return row.status === STATUS.waiting;
 }
 
-export function waitingQueue(rows: BriefRow[], sort: QueueSort = queueSort()): BriefRow[] {
-  return rows.filter(isWaiting).sort((a, b) => compareWaiting(a, b, sort));
+export function waitingQueue(rows: BriefRow[], sort: QueueSort = queueSort(), today = queueToday()): BriefRow[] {
+  return rows.filter(isWaiting).sort((a, b) => compareWaiting(a, b, sort, today));
 }
 
 export function parkedQueue(rows: BriefRow[]): BriefRow[] {

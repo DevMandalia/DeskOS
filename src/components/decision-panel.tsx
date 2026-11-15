@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  CHOICES,
   SAVED_TOAST,
-  type Choice,
+  type Action,
 } from "@/lib/decide";
 import { withBasePath } from "@/lib/base-path";
 import { defaultRevisitDate } from "../../contract";
@@ -47,8 +46,29 @@ export function DecisionPanel({
   const router = useRouter();
   const [note, setNote] = useState("");
   const [revisitAt, setRevisitAt] = useState(defaultParkDate ?? defaultRevisitDate());
-  const [pending, setPending] = useState<Choice | null>(null);
-  const [confirming, setConfirming] = useState<Choice | null>(null);
+  const expired = row.revisitState === "expired";
+  const needsSplit = Boolean(row.needsSplit);
+  const actions: { id: Action; label: string }[] = expired
+    ? [
+        { id: "Park", label: "Keep parked" },
+        { id: "Reopen", label: "Reopen" },
+        { id: "Decline", label: "Kill" },
+      ]
+    : needsSplit
+      ? [
+          { id: "Split", label: "Send back to split" },
+          { id: "Decline", label: "Decline" },
+          { id: "Park", label: "Park" },
+          { id: "Discuss", label: "Discuss" },
+        ]
+      : [
+          { id: "Approve", label: "Approve" },
+          { id: "Decline", label: "Decline" },
+          { id: "Park", label: "Park" },
+          { id: "Discuss", label: "Discuss" },
+        ];
+  const [pending, setPending] = useState<Action | null>(null);
+  const [confirming, setConfirming] = useState<Action | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [saved, setSaved] = useState(row.reply);
   const [status, setStatus] = useState(row.status);
@@ -90,7 +110,7 @@ export function DecisionPanel({
   );
 
   const submit = useCallback(
-    async (choice: Choice) => {
+    async (choice: Action) => {
       if (submitting.current) return;
       submitting.current = true;
       setPending(choice);
@@ -144,7 +164,7 @@ export function DecisionPanel({
         setPending(null);
       }
     },
-    [note, revisitAt, row.id, router, onLocalSave],
+    [note, revisitAt, row.id, router, onLocalSave, setConfirming],
   );
 
   useEffect(() => {
@@ -178,7 +198,7 @@ export function DecisionPanel({
       } else if (event.key === "k") {
         event.preventDefault();
         go(prevHref);
-      } else if (event.key === "a") {
+      } else if (event.key === "a" && !needsSplit && !expired) {
         event.preventDefault();
         setConfirming("Approve");
       } else if (event.key === "d") {
@@ -187,9 +207,15 @@ export function DecisionPanel({
       } else if (event.key === "p") {
         event.preventDefault();
         setConfirming("Park");
-      } else if (event.key === "x") {
+      } else if (event.key === "x" && !expired) {
         event.preventDefault();
         setConfirming("Discuss");
+      } else if (event.key === "s" && needsSplit && !expired) {
+        event.preventDefault();
+        setConfirming("Split");
+      } else if (event.key === "r" && expired) {
+        event.preventDefault();
+        setConfirming("Reopen");
       } else if (event.key === "Enter" && confirming && !pending) {
         event.preventDefault();
         void submit(confirming);
@@ -197,7 +223,7 @@ export function DecisionPanel({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [confirming, go, nextHref, openNote, pending, prevHref, submit]);
+  }, [confirming, expired, go, needsSplit, nextHref, openNote, pending, prevHref, submit]);
 
   useEffect(() => {
     if (!toast) return;
@@ -234,18 +260,25 @@ export function DecisionPanel({
       )}
       <div className="decide-dock">
         <div className="action-bar">
-          {CHOICES.map((choice) => (
+          {actions.map((choice) => (
             <button
-              key={choice}
+              key={choice.id}
               type="button"
-              className={`btn btn-${choice.toLowerCase()}`}
+              className={`btn btn-${choice.id.toLowerCase()}`}
               disabled={disabled}
-              onClick={() => setConfirming(choice)}
+              onClick={() => setConfirming(choice.id)}
             >
-              {pending === choice ? "Sending…" : choice}
+              {pending === choice.id ? "Sending…" : choice.label}
             </button>
           ))}
         </div>
+        {needsSplit && !expired ? (
+          <p className="park-revisit-hint">
+            <button type="button" className="text-btn" onClick={() => setConfirming("OneDecision")}>
+              This is one decision
+            </button>
+          </p>
+        ) : null}
         <nav className="step-nav" aria-label="Previous and next decision">
           {prevHref ? (
             <Link href={prevHref} className="step-btn" rel="prev">
@@ -324,7 +357,18 @@ export function DecisionPanel({
               </label>
             ) : null}
             {confirming === "Decline" ? (
-              <p className="park-revisit-hint">Decline is terminal. Use Park if you may want this later.</p>
+              <p className="park-revisit-hint">
+                {expired ? "Kill is a no — same as Decline. The item will not come back." : "Decline is a no, not a deferral. Use Park if you may want this later."}
+              </p>
+            ) : null}
+            {confirming === "Split" ? (
+              <p className="park-revisit-hint">The raising agent is asked to split this into one decision per card. This card stays waiting.</p>
+            ) : null}
+            {confirming === "OneDecision" ? (
+              <p className="park-revisit-hint">Unlock Approve. This stays one card.</p>
+            ) : null}
+            {confirming === "Reopen" ? (
+              <p className="park-revisit-hint">Clears the park date and returns this to the ordinary waiting queue.</p>
             ) : null}
             <div className="modal-actions">
               <button

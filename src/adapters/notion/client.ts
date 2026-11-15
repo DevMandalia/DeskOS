@@ -48,6 +48,20 @@ export function notionPropMap() {
     updated: process.env.NOTION_UPDATED_PROP ?? "Last updated",
     due: process.env.NOTION_DUE_PROP ?? "Due",
     source: process.env.NOTION_SOURCE_PROP ?? "Source",
+    options: process.env.NOTION_OPTIONS_PROP ?? "Options",
+    recommendation: process.env.NOTION_RECOMMENDATION_PROP ?? "Recommendation",
+    doorType: process.env.NOTION_DOOR_TYPE_PROP ?? "Door type",
+    costOfDelay: process.env.NOTION_COST_OF_DELAY_PROP ?? "Cost of delay",
+    deadline: process.env.NOTION_DEADLINE_PROP ?? "Deadline",
+    defaultChoice: process.env.NOTION_DEFAULT_IF_NO_ANSWER_PROP ?? "Default if no answer",
+    defaultNote: process.env.NOTION_DEFAULT_IF_NO_ANSWER_NOTE_PROP ?? "Default if no answer note",
+    needsSplit: process.env.NOTION_NEEDS_SPLIT_PROP ?? "Needs split",
+    splitReason: process.env.NOTION_SPLIT_REASON_PROP ?? "Split reason",
+    parentDecision: process.env.NOTION_PARENT_DECISION_PROP ?? "Parent decision",
+    splitSentBack: process.env.NOTION_SPLIT_SENT_BACK_PROP ?? "Split sent back at",
+    revisitAt: process.env.NOTION_REVISIT_AT_PROP ?? "Revisit at",
+    revisitState: process.env.NOTION_REVISIT_STATE_PROP ?? "Revisit state",
+    briefOverrides: process.env.NOTION_BRIEF_OVERRIDES_PROP ?? "Brief overrides",
   };
 }
 

@@ -1,10 +1,11 @@
-import { briefOf, withBrief } from "@/lib/brief-fields";
+import { applyPatchToRow, briefOf, withBrief } from "@/lib/brief-fields";
 import { parseChoiceFromReply, parseRevisitFromReply } from "../../../contract";
 import { hyphenateId, idsEqual, stripId } from "@/lib/ids";
 import { STATUS } from "@/lib/decide";
 import type {
   Decision,
   DecisionCreate,
+  DecisionPatch,
   DecisionSource,
   DecisionVerdictInput,
   DeskBlock,
@@ -42,6 +43,52 @@ function plain(value: unknown): string | null {
 
 function propsOf(page: Record<string, unknown>): Record<string, unknown> {
   return (page.properties as Record<string, unknown>) ?? {};
+}
+
+function extraWriteProps(page: Record<string, unknown>, brief: Partial<Decision>): Record<string, unknown> {
+  const map = notionPropMap();
+  const existing = propsOf(page);
+  const out: Record<string, unknown> = {};
+  const put = (name: string, value: unknown) => {
+    if (name in existing) out[name] = value;
+  };
+  if (brief.options !== undefined) put(map.options, { rich_text: chunkRichText((brief.options ?? []).join("\n")) });
+  if (brief.recommendation !== undefined) put(map.recommendation, { rich_text: chunkRichText(brief.recommendation ?? "") });
+  if (brief.doorType !== undefined) put(map.doorType, { select: brief.doorType ? { name: brief.doorType } : null });
+  if (brief.costOfDelay !== undefined) put(map.costOfDelay, { select: brief.costOfDelay ? { name: brief.costOfDelay } : null });
+  if (brief.deadline !== undefined) put(map.deadline, { date: brief.deadline ? { start: brief.deadline } : null });
+  if (brief.defaultIfNoAnswer !== undefined) {
+    put(map.defaultChoice, { select: brief.defaultIfNoAnswer ? { name: brief.defaultIfNoAnswer.choice } : null });
+    put(map.defaultNote, { rich_text: chunkRichText(brief.defaultIfNoAnswer?.note ?? "") });
+  }
+  if (brief.needsSplit !== undefined) put(map.needsSplit, { checkbox: Boolean(brief.needsSplit) });
+  if (brief.splitReason !== undefined) put(map.splitReason, { rich_text: chunkRichText(brief.splitReason ?? "") });
+  if (brief.parentId !== undefined) put(map.parentDecision, { rich_text: chunkRichText(brief.parentId ?? "") });
+  if (brief.splitSentBackAt !== undefined) {
+    put(map.splitSentBack, { date: brief.splitSentBackAt ? { start: brief.splitSentBackAt } : null });
+  }
+  if (brief.revisitAt !== undefined) put(map.revisitAt, { date: brief.revisitAt ? { start: brief.revisitAt } : null });
+  if (brief.revisitState !== undefined) {
+    put(map.revisitState, { select: brief.revisitState ? { name: brief.revisitState } : null });
+  }
+  if (brief.briefOverrides !== undefined) {
+    put(map.briefOverrides, { rich_text: chunkRichText(JSON.stringify(brief.briefOverrides ?? [])) });
+  }
+  return out;
+}
+
+async function tryWriteExtra(
+  surface: NotionSurface,
+  page: Record<string, unknown>,
+  brief: Partial<Decision>,
+): Promise<void> {
+  const extra = extraWriteProps(page, brief);
+  if (Object.keys(extra).length === 0) return;
+  try {
+    await surface.pages.update({ page_id: String(page.id), properties: extra });
+  } catch {
+    // Extra properties are optional. Missing schema must not fail the save.
+  }
 }
 
 /**
@@ -124,7 +171,25 @@ export class NotionDecisionSource implements DecisionSource {
         [map.raisedBy]: input.raisedBy ? { rich_text: chunkRichText(input.raisedBy.name) } : undefined,
       },
     })) as Record<string, unknown>;
+    await tryWriteExtra(this.surface, page, brief);
     return withBrief(this.toDecision(page), brief);
+  }
+
+  async patch(id: string, patch: DecisionPatch): Promise<Decision> {
+    if (!this.surface) return this.sidecar.patch(id, patch);
+    const current = await this.get(id);
+    if (!current) throw new Error("not found");
+    try {
+      const page = (await this.surface.pages.retrieve({ page_id: hyphenateId(id) })) as Record<string, unknown>;
+      await tryWriteExtra(this.surface, page, patch);
+    } catch {
+      // Extra properties are optional.
+    }
+    try {
+      return await this.sidecar.patch(id, patch);
+    } catch {
+      return applyPatchToRow(current, patch);
+    }
   }
 
   async recordVerdict(id: string, verdict: DecisionVerdictInput): Promise<Decision> {
@@ -138,6 +203,15 @@ export class NotionDecisionSource implements DecisionSource {
         [map.updated]: { date: { start: verdict.lastUpdated } },
       },
     });
+    try {
+      const page = (await this.surface.pages.retrieve({ page_id: hyphenateId(id) })) as Record<string, unknown>;
+      await tryWriteExtra(this.surface, page, {
+        revisitAt: verdict.revisitAt,
+        revisitState: verdict.revisitState,
+      });
+    } catch {
+      // Extra properties are optional.
+    }
     const next = await this.get(id);
     if (!next) throw new Error("not found");
     return next;
@@ -181,8 +255,64 @@ export class NotionDecisionSource implements DecisionSource {
         ? { id: stripId(name), name, parentId: plain(props[map.parent]), parentName: plain(props[map.parent]) }
         : null,
       lastChoice: parseChoiceFromReply(plain(props[map.reply])),
-      revisitAt: parseRevisitFromReply(plain(props[map.reply])),
+      revisitAt: parseYmdSafe(plain(props[map.revisitAt])) ?? parseRevisitFromReply(plain(props[map.reply])),
+      doorType: asDoor(plain(props[map.doorType])),
+      costOfDelay: asCost(plain(props[map.costOfDelay])),
+      deadline: parseYmdSafe(plain(props[map.deadline])),
+      recommendation: plain(props[map.recommendation]),
+      options: parseOptions(plain(props[map.options])),
+      defaultIfNoAnswer: parseDefault(plain(props[map.defaultChoice]), plain(props[map.defaultNote])),
+      needsSplit: asBool(props[map.needsSplit]),
+      splitReason: plain(props[map.splitReason]),
+      parentId: plain(props[map.parentDecision]),
+      splitSentBackAt: parseYmdSafe(plain(props[map.splitSentBack])),
+      revisitState: asRevisit(plain(props[map.revisitState])),
+      briefOverrides: parseOverrides(plain(props[map.briefOverrides])),
     };
+  }
+}
+
+function parseYmdSafe(value: string | null): string | null {
+  return value && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
+}
+
+function asDoor(value: string | null): Decision["doorType"] {
+  return value === "one_way" || value === "two_way" ? value : null;
+}
+
+function asCost(value: string | null): Decision["costOfDelay"] {
+  return value === "high" || value === "medium" || value === "low" ? value : null;
+}
+
+function asRevisit(value: string | null): Decision["revisitState"] {
+  return value === "scheduled" || value === "expired" ? value : null;
+}
+
+function asBool(value: unknown): boolean | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as { type?: string; checkbox?: boolean };
+  if (item.type === "checkbox") return Boolean(item.checkbox);
+  return null;
+}
+
+function parseOptions(value: string | null): string[] | null {
+  if (!value) return null;
+  const items = value.split(/\n|;/).map((part) => part.trim()).filter(Boolean);
+  return items.length ? items : null;
+}
+
+function parseDefault(choice: string | null, note: string | null): Decision["defaultIfNoAnswer"] {
+  if (choice !== "Approve" && choice !== "Decline" && choice !== "Park") return null;
+  return { choice, note };
+}
+
+function parseOverrides(value: string | null): Decision["briefOverrides"] {
+  if (!value) return undefined;
+  try {
+    const parsed = JSON.parse(value) as Decision["briefOverrides"];
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
   }
 }
 

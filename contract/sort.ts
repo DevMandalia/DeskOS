@@ -1,18 +1,28 @@
-import type { CostOfDelay } from "./brief";
+import type { CostOfDelay, DoorType } from "./brief";
+import { addDaysYmd, isOverdueYmd, isYmd, todayYmd } from "./dates";
 
 export const QUEUE_SORTS = ["stakes", "age"] as const;
 export type QueueSort = (typeof QUEUE_SORTS)[number];
 
 const COST_RANK: Record<CostOfDelay, number> = {
-  critical: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
+const DOOR_RANK: Record<DoorType, number> = {
+  one_way: 0,
+  two_way: 1,
 };
 
 export function costRank(value: CostOfDelay | null | undefined): number {
-  if (!value) return 4;
+  if (!value) return COST_RANK.medium;
   return COST_RANK[value];
+}
+
+export function doorRank(value: DoorType | null | undefined): number {
+  if (!value) return 2;
+  return DOOR_RANK[value];
 }
 
 export function parseQueueSort(value: string | null | undefined): QueueSort | null {
@@ -22,19 +32,16 @@ export function parseQueueSort(value: string | null | undefined): QueueSort | nu
 }
 
 /**
- * Demo defaults to stakes so the sample Home shows cost-of-delay ordering.
- * Live / private desks default to age until the owner sets QUEUE_SORT.
+ * Spec 03 default is stakes. Private desk passes fallback "age" until confirmed.
  */
-export function resolveQueueSort(env: {
-  QUEUE_SORT?: string;
-  DESK_DEMO?: string;
-  NEXT_PUBLIC_DESK_DEMO?: string;
-  NEXT_PUBLIC_QUEUE_SORT?: string;
-}): QueueSort {
-  const explicit = parseQueueSort(env.QUEUE_SORT) ?? parseQueueSort(env.NEXT_PUBLIC_QUEUE_SORT);
-  if (explicit) return explicit;
-  if (env.DESK_DEMO === "1" || env.NEXT_PUBLIC_DESK_DEMO === "1") return "stakes";
-  return "age";
+export function resolveQueueSort(
+  env: {
+    QUEUE_SORT?: string;
+    NEXT_PUBLIC_QUEUE_SORT?: string;
+  },
+  fallback: QueueSort = "stakes",
+): QueueSort {
+  return parseQueueSort(env.QUEUE_SORT) ?? parseQueueSort(env.NEXT_PUBLIC_QUEUE_SORT) ?? fallback;
 }
 
 export function startCtaLabel(sort: QueueSort): string {
@@ -51,14 +58,20 @@ export function queueOrderHint(sort: QueueSort): string {
 
 export type SortableDecision = {
   costOfDelay?: CostOfDelay | null;
+  doorType?: DoorType | null;
+  door?: DoorType | null;
   deadline?: string | null;
   lastUpdated?: string | null;
   item: string;
+  revisitState?: "scheduled" | "expired" | null;
 };
 
-function deadlineKey(value: string | null | undefined): string {
-  if (!value) return "9999-99-99";
-  return value.slice(0, 10);
+export function isOverdueClass(
+  row: SortableDecision,
+  today: string,
+): boolean {
+  if (row.revisitState === "expired") return true;
+  return isOverdueYmd(row.deadline ?? null, today);
 }
 
 function ageKey(value: string | null | undefined): string {
@@ -66,17 +79,25 @@ function ageKey(value: string | null | undefined): string {
   return value.slice(0, 10);
 }
 
-/** Stakes: cost of delay, then earlier deadline, then older first. Age: older first. */
+function doorOf(row: SortableDecision): DoorType | null {
+  return row.doorType ?? row.door ?? null;
+}
+
+/** Spec 03: overdue-class, cost (missing=medium), door (null last), then age. */
 export function compareWaiting(
   a: SortableDecision,
   b: SortableDecision,
   sort: QueueSort,
+  today?: string,
 ): number {
   if (sort === "stakes") {
+    const day = today ?? "9999-99-99";
+    const overdue = Number(isOverdueClass(b, day)) - Number(isOverdueClass(a, day));
+    if (overdue !== 0) return overdue;
     const cost = costRank(a.costOfDelay ?? null) - costRank(b.costOfDelay ?? null);
     if (cost !== 0) return cost;
-    const deadline = deadlineKey(a.deadline).localeCompare(deadlineKey(b.deadline));
-    if (deadline !== 0) return deadline;
+    const door = doorRank(doorOf(a)) - doorRank(doorOf(b));
+    if (door !== 0) return door;
   }
   return (
     ageKey(a.lastUpdated).localeCompare(ageKey(b.lastUpdated)) ||
@@ -98,16 +119,17 @@ export function compareParked(
   );
 }
 
-export function defaultRevisitDate(
-  now = new Date(),
-  days = 30,
-): string {
-  const next = new Date(now.getTime() + days * 86_400_000);
-  return next.toISOString().slice(0, 10);
-}
-
 export function parkRevisitDays(env: Record<string, string | undefined> = process.env): number {
   const raw = Number.parseInt((env.PARK_REVISIT_DAYS ?? "").trim(), 10);
-  if (Number.isFinite(raw) && raw > 0 && raw < 3650) return raw;
+  if (Number.isFinite(raw) && raw >= 1 && raw < 3650) return raw;
   return 30;
+}
+
+export function defaultRevisitDate(
+  now: Date | string = new Date(),
+  days = 30,
+  timeZone?: string,
+): string {
+  const today = typeof now === "string" && isYmd(now) ? now : todayYmd(now instanceof Date ? now : new Date(), timeZone);
+  return addDaysYmd(today, days);
 }

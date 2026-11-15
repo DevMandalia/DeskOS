@@ -1,13 +1,11 @@
-import {
-  assessRaise,
-  briefFromRaise,
-  briefRequired,
-  missingBriefFields,
-  type RaiseBody,
-  type RaiseGateFailure,
-} from "../../contract";
+import { assessSplit, parseRaiseBrief, type ParsedRaiseBrief, type RaiseBody, type SplitReason } from "../../contract";
 
 export type { RaiseBody };
+
+export type RaisedBrief = Omit<ParsedRaiseBrief, "needsSplit"> & {
+  needsSplit: boolean;
+  splitReason: SplitReason | null;
+};
 
 export type RaiseParseOk = {
   ok: true;
@@ -16,7 +14,8 @@ export type RaiseParseOk = {
   nextStep: string | null;
   project: string | null;
   body: unknown;
-  brief: ReturnType<typeof briefFromRaise>;
+  parentId: string | null;
+  brief: RaisedBrief;
 };
 
 export type RaiseParseErr = {
@@ -24,54 +23,47 @@ export type RaiseParseErr = {
   status: number;
   error: string;
   code?: string;
+  field?: string;
   hint?: string;
-  missing?: string[];
 };
 
-export function parseRaise(
-  body: RaiseBody,
-  env: Record<string, string | undefined> = process.env,
-): RaiseParseOk | RaiseParseErr {
+export function parseRaise(body: RaiseBody): RaiseParseOk | RaiseParseErr {
   const item = (body.item ?? body.title ?? "").trim();
-  if (!item) return { ok: false, status: 400, error: "title is required" };
+  if (!item) return { ok: false, status: 400, error: "title is required", field: "title" };
 
-  const gate: RaiseGateFailure | null = assessRaise({
-    title: item,
-    decisionNeeded: body.decision_needed,
-    kind: body.kind,
-  });
-  if (gate) {
+  const parsed = parseRaiseBrief(body);
+  if (!parsed.ok) {
     return {
       ok: false,
-      status: gate.status,
-      error: gate.error,
-      code: gate.code,
-      hint: gate.hint,
+      status: 400,
+      error: parsed.error,
+      code: "invalid_field",
+      field: parsed.field,
     };
   }
 
-  const brief = briefFromRaise(body);
-  if (briefRequired(env)) {
-    const missing = missingBriefFields(brief, body.decision_needed);
-    if (missing.length) {
-      return {
-        ok: false,
-        status: 400,
-        error: "Decision brief is incomplete.",
-        code: "brief_incomplete",
-        missing,
-        hint: `Set ${missing.join(", ")} or unset DESK_BRIEF_REQUIRED.`,
-      };
-    }
-  }
+  const decisionNeeded = body.decision_needed?.trim() ? body.decision_needed.trim() : null;
+  const nextStep = body.next_step?.trim() ? body.next_step.trim() : null;
+  const assessed = assessSplit({
+    item,
+    decisionNeeded,
+    nextStep,
+    needsSplit: parsed.brief.needsSplit,
+    hasOptions: Boolean(parsed.brief.options?.length),
+  });
 
   return {
     ok: true,
     item,
-    decisionNeeded: body.decision_needed?.trim() ? body.decision_needed.trim() : null,
-    nextStep: body.next_step?.trim() ? body.next_step.trim() : null,
+    decisionNeeded,
+    nextStep,
     project: (body.area ?? body.project ?? null)?.trim() || null,
     body: body.body ?? null,
-    brief,
+    parentId: parsed.brief.parentId,
+    brief: {
+      ...parsed.brief,
+      needsSplit: assessed.needsSplit,
+      splitReason: assessed.splitReason,
+    },
   };
 }

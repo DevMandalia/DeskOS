@@ -62,7 +62,7 @@ export function demoBoard(state: DemoState = loadDemoState()): TaskBoard {
 
 export function recordDemoVerdict(
   id: string,
-  choice: "Approve" | "Decline" | "Park" | "Discuss",
+  choice: "Approve" | "Decline" | "Park" | "Discuss" | "Reopen" | "Split" | "OneDecision",
   note: string,
   extra?: { revisitAt?: string | null },
 ): Decision | null {
@@ -77,14 +77,28 @@ export function recordDemoVerdict(
         : choice === "Park"
           ? STATUS.parked
           : STATUS.waiting;
+  const label = choice === "Split" ? "Send back to split" : choice === "OneDecision" ? "One decision" : choice;
   const revisit =
     choice === "Park" && extra?.revisitAt ? ` (revisit ${extra.revisitAt})` : "";
-  const line = `${choice} — ${note.trim() || "(demo)"}${revisit} (via DeskOS, demo)`;
+  const line = `${label} — ${note.trim() || "(demo)"}${revisit} (via DeskOS, demo)`;
   row.reply = row.reply ? `${line}\n${row.reply}` : line;
   row.status = status;
-  row.lastChoice = choice;
+  row.lastChoice = choice === "Approve" || choice === "Decline" || choice === "Park" || choice === "Discuss" ? choice : row.lastChoice;
+  if (choice === "Reopen") {
+    row.lastChoice = null;
+    row.revisitAt = null;
+    row.revisitState = null;
+  }
+  if (choice === "Park") {
+    row.revisitAt = extra?.revisitAt ?? null;
+    row.revisitState = "scheduled";
+  }
+  if (choice === "Split") row.needsSplit = true;
+  if (choice === "OneDecision") {
+    row.needsSplit = false;
+    row.splitReason = "owner_override";
+  }
   row.lastUpdated = new Date().toISOString();
-  row.revisitAt = choice === "Park" ? extra?.revisitAt ?? null : row.revisitAt ?? null;
   if (choice === "Discuss") {
     state.discussion.push({
       id: crypto.randomUUID(),

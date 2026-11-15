@@ -3,7 +3,7 @@
  * Contract tests skip this adapter unless DESK_TEST_POSTGRES=1.
  */
 import { configuredColumns, resolveColumns, applyPatch } from "@/lib/board";
-import { briefJsonOf, briefOf, withBrief } from "@/lib/brief-fields";
+import { applyPatchToRow, briefJsonOf, briefOf, withBrief } from "@/lib/brief-fields";
 import { STATUS } from "@/lib/decide";
 import { hashesEqual, mintApiKey, mintWebhookSecret } from "@/lib/keys";
 import { spansFromPlain } from "@/lib/rich";
@@ -22,6 +22,7 @@ import type {
   AgentStore,
   Decision,
   DecisionCreate,
+  DecisionPatch,
   DecisionSource,
   DecisionVerdictInput,
   DeskBlock,
@@ -104,13 +105,31 @@ export class PostgresDecisionSource implements DecisionSource {
         verdict.reply,
         verdict.lastUpdated,
         verdict.choice,
-        briefJsonOf(current, { revisitAt: verdict.revisitAt ?? current.revisitAt ?? null }),
+        briefJsonOf(current, {
+          revisitAt: verdict.revisitAt ?? current.revisitAt ?? null,
+          revisitState: verdict.revisitState ?? current.revisitState ?? null,
+        }),
         id,
       ],
     );
     const next = await this.get(id);
     if (!next) throw new Error("not found");
     return next;
+  }
+
+  async patch(id: string, patch: DecisionPatch): Promise<Decision> {
+    const current = await this.get(id);
+    if (!current) throw new Error("not found");
+    const next = applyPatchToRow(current, patch);
+    await (
+      await pgPool()
+    ).query(
+      "UPDATE decisions SET status=$1, reply=$2, last_updated=$3, last_choice=$4, brief_json=$5 WHERE id=$6",
+      [next.status, next.reply, next.lastUpdated, next.lastChoice, briefJsonOf(next), id],
+    );
+    const saved = await this.get(id);
+    if (!saved) throw new Error("not found");
+    return saved;
   }
 
   async listDiscussion(id: string): Promise<DiscussionMessage[]> {

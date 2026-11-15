@@ -1,4 +1,11 @@
-import type { CostOfDelay, DecisionKind, DoorType, VerdictChoice } from "../../contract";
+import type {
+  BriefOverride,
+  CostOfDelay,
+  DefaultIfNoAnswer,
+  DoorType,
+  RevisitState,
+  VerdictChoice,
+} from "../../contract";
 
 export type RichSpan = {
   text: string;
@@ -91,15 +98,19 @@ export type Decision = {
   raisedBy: AgentRef | null;
   /** Last recorded verdict choice, if any. */
   lastChoice: VerdictChoice | null;
-  kind?: DecisionKind | null;
   options?: string[] | null;
   recommendation?: string | null;
-  door?: DoorType | null;
+  doorType?: DoorType | null;
   costOfDelay?: CostOfDelay | null;
-  defaultIfTimeout?: string | null;
+  defaultIfNoAnswer?: DefaultIfNoAnswer | null;
   deadline?: string | null;
-  parentDecisionId?: string | null;
+  parentId?: string | null;
+  briefOverrides?: BriefOverride[];
+  needsSplit?: boolean | null;
+  splitReason?: string | null;
+  splitSentBackAt?: string | null;
   revisitAt?: string | null;
+  revisitState?: RevisitState | null;
 };
 
 /** @deprecated Use Decision. */
@@ -115,24 +126,45 @@ export type DecisionCreate = {
   body?: DeskBlock[] | string | null;
   url?: string | null;
   raisedBy?: AgentRef | null;
-  kind?: DecisionKind | null;
   options?: string[] | null;
   recommendation?: string | null;
-  door?: DoorType | null;
+  doorType?: DoorType | null;
   costOfDelay?: CostOfDelay | null;
-  defaultIfTimeout?: string | null;
+  defaultIfNoAnswer?: DefaultIfNoAnswer | null;
   deadline?: string | null;
-  parentDecisionId?: string | null;
+  parentId?: string | null;
+  needsSplit?: boolean | null;
+  splitReason?: string | null;
 };
 
 export type DecisionVerdictInput = {
-  choice: VerdictChoice;
+  choice: VerdictChoice | null;
   note: string;
   reply: string;
   status: string;
   lastUpdated: string;
   revisitAt?: string | null;
+  revisitState?: RevisitState | null;
 };
+
+export type DecisionPatch = Partial<
+  Pick<
+    Decision,
+    | "status"
+    | "reply"
+    | "lastChoice"
+    | "lastUpdated"
+    | "revisitAt"
+    | "revisitState"
+    | "doorType"
+    | "costOfDelay"
+    | "deadline"
+    | "briefOverrides"
+    | "needsSplit"
+    | "splitReason"
+    | "splitSentBackAt"
+  >
+>;
 
 /**
  * Pluggable decision source. Core never talks to Notion, SQLite, or memory
@@ -145,6 +177,7 @@ export interface DecisionSource {
   getBody(decision: Decision): Promise<DeskBlock[]>;
   create(input: DecisionCreate): Promise<Decision>;
   recordVerdict(id: string, verdict: DecisionVerdictInput): Promise<Decision>;
+  patch(id: string, patch: DecisionPatch): Promise<Decision>;
   listDiscussion(id: string): Promise<DiscussionMessage[]>;
   addDiscussion(message: Omit<DiscussionMessage, "id">): Promise<DiscussionMessage>;
   hasIdempotencyKey?(key: string): Promise<boolean>;
