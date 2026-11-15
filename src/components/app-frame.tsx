@@ -187,6 +187,19 @@ export function AppFrame({
           </aside>
         </div>
         <div className="drawer-scrim" onClick={close} aria-hidden="true" />
+        <form
+          className="phone-ask"
+          onSubmit={(event) => {
+            event.preventDefault();
+            toggle("chat");
+          }}
+        >
+          <label className="sr-only" htmlFor="phone-ask-input">
+            Ask the Desk agent
+          </label>
+          <input id="phone-ask-input" placeholder="Ask the Desk agent" />
+          <button type="submit">Ask</button>
+        </form>
       </div>
     </FrameContext.Provider>
   );

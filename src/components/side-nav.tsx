@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { BATCH_HREF, BOARD_HREF, CHATS_HREF, HOME_HREF, REVIEW_HREF, STATS_HREF, type DeskScope, type NavModel } from "@/lib/nav";
 
 const SETTINGS_HREF = "/settings";
@@ -24,6 +25,10 @@ export function SideNav({
   const page = home || board;
   return (
     <nav className="side-nav-inner" aria-label="Desk">
+      <p className="side-brand">
+        <span className="live-dot" aria-hidden="true" />
+        Desk
+      </p>
       <div className="side-top">
         <Link
           href={HOME_HREF}
@@ -109,6 +114,9 @@ export function SideNav({
         <Link href={SETTINGS_HREF} className="side-link">
           <span className="side-link-name">Settings</span>
         </Link>
+      </div>
+      <div className="theme-toggle-slot">
+        <ThemeToggle />
       </div>
     </nav>
   );

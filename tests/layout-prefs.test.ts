@@ -5,14 +5,14 @@ import { CHAT_PANE, clampWidth, LAYOUT_BOOTSTRAP_SCRIPT, NAV_PANE, parseCollapse
 describe("pane widths", () => {
   it("clamps to each pane's bounds and falls back to the default", () => {
     expect(clampWidth(100, NAV_PANE)).toBe(200);
-    expect(clampWidth(999, NAV_PANE)).toBe(420);
+    expect(clampWidth(999, NAV_PANE)).toBe(320);
     expect(clampWidth(310.6, NAV_PANE)).toBe(311);
-    expect(clampWidth(Number.NaN, CHAT_PANE)).toBe(380);
-    expect(parseWidth(null, NAV_PANE)).toBe(248);
-    expect(parseWidth("", CHAT_PANE)).toBe(380);
-    expect(parseWidth("junk", CHAT_PANE)).toBe(380);
-    expect(parseWidth("200", CHAT_PANE)).toBe(300);
-    expect(parseWidth("700", CHAT_PANE)).toBe(640);
+    expect(clampWidth(Number.NaN, CHAT_PANE)).toBe(340);
+    expect(parseWidth(null, NAV_PANE)).toBe(240);
+    expect(parseWidth("", CHAT_PANE)).toBe(340);
+    expect(parseWidth("junk", CHAT_PANE)).toBe(340);
+    expect(parseWidth("200", CHAT_PANE)).toBe(280);
+    expect(parseWidth("700", CHAT_PANE)).toBe(480);
     expect(parseCollapsed("1")).toBe(true);
     expect(parseCollapsed(null)).toBe(false);
   });
@@ -32,8 +32,8 @@ describe("pane widths", () => {
     };
     const fakeStorage = { getItem: (k: string) => store.get(k) ?? null };
     new Function("document", "localStorage", LAYOUT_BOOTSTRAP_SCRIPT)(fakeDocument, fakeStorage);
-    expect(props.get("--nav-w")).toBe("420px");
-    expect(props.get("--chat-w")).toBe("380px");
+    expect(props.get("--nav-w")).toBe("320px");
+    expect(props.get("--chat-w")).toBe("340px");
     expect(attrs.get("data-nav")).toBe("open");
     expect(attrs.get("data-chat")).toBe("collapsed");
   });

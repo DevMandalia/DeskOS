@@ -34,7 +34,7 @@ export function DeskFrame({
   const waiting = navModel.views.find((v) => v.key === "waiting")?.count ?? 0;
   return (
     <AppFrame
-      header={<SiteHeader email={email} />}
+      header={<SiteHeader email={email} waiting={waiting} />}
       nav={<SideNav nav={navModel} scope={scope} currentId={currentId} home={home} board={board} />}
       navRail={
         <>

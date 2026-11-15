@@ -66,6 +66,13 @@ export function ageDays(
   return Math.max(0, Math.round(diff));
 }
 
+export function agePill(row: BriefRow, now: Date): string {
+  const days = ageDays(row.lastUpdated, now);
+  if (days === null) return "";
+  if (days === 0) return "today";
+  return `${days} ${days === 1 ? "day" : "days"}`;
+}
+
 export function cardAge(row: BriefRow, now: Date): string {
   const days = ageDays(row.lastUpdated, now);
   if (days === null) return "";

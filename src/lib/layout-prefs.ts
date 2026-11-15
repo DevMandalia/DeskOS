@@ -19,8 +19,8 @@ export const NAV_PANE: PaneSpec = {
   cssVar: "--nav-w",
   attr: "data-nav",
   min: 200,
-  max: 420,
-  def: 248,
+  max: 320,
+  def: 240,
 };
 
 export const CHAT_PANE: PaneSpec = {
@@ -28,9 +28,9 @@ export const CHAT_PANE: PaneSpec = {
   collapsedKey: "desk-chat-collapsed",
   cssVar: "--chat-w",
   attr: "data-chat",
-  min: 300,
-  max: 640,
-  def: 380,
+  min: 280,
+  max: 480,
+  def: 340,
 };
 
 /** Keyboard step on a focused resize handle (Shift for a bigger step). */

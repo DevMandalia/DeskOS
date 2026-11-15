@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { DecisionBrief } from "@/components/decision-brief";
 import { DecisionPanel } from "@/components/decision-panel";
 import { DemoDesk } from "@/components/demo-desk";
 import { DeskFrame } from "@/components/desk-frame";
@@ -20,16 +19,17 @@ import {
   parkRevisitDays,
   sessionForDay,
   sessionOverdueChats,
+  queueSortPhrase,
   startCtaLabel,
   timeoutClassOn,
   timeoutNoticeTomorrow,
   todayYmd,
-  waitingListLabel,
 } from "../../contract";
 import { ChatRow } from "@/components/chat-lane";
 import { listChatPointers } from "@/lib/chats/store";
-import { BATCH_HREF, BOARD_HREF, CHATS_HREF, REVIEW_HREF, STATS_HREF, buildHome, decisionHref, deskHref, legacyListHref, type DeskScope } from "@/lib/nav";
-import { ageDays, cardAge, displayTitle, queueOrderHint, queueSort } from "@/lib/queue";
+import { CHATS_HREF, buildHome, decisionHref, legacyListHref, type DeskScope } from "@/lib/nav";
+import { datePillLabel, firstName, helloPhrase } from "@/lib/greeting";
+import { ageDays, agePill, cardAge, displayTitle, queueOrderHint, queueSort } from "@/lib/queue";
 import { listOwnerRows } from "@/lib/owner-rows";
 import { demoDecisions } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
@@ -85,11 +85,22 @@ export default async function HomePage({
         ? " The oldest came in today."
         : ` The oldest has waited ${oldestDays} ${oldestDays === 1 ? "day" : "days"}.`;
 
+  const name = firstName(user.name, user.email);
+  const hello = helloPhrase(now, name, deskTimezone());
+  const dateLabel = datePillLabel(now, deskTimezone());
+
   return (
     <DeskFrame email={user.email} rows={rows} scope={HOME_SCOPE} home>
       <div className="home">
         <header className="desk-head">
-          <h1>Home</h1>
+          <p className="date-pill">
+            <span className="live-dot" aria-hidden="true" />
+            {dateLabel}
+          </p>
+          <h1 className="home-hello">
+            {hello}{" "}
+            <span className="home-hello-muted">Here&apos;s what needs you.</span>
+          </h1>
           <p className="home-lede">
             {home.totalWaiting === 0
               ? "Nothing is waiting on you right now."
@@ -99,41 +110,26 @@ export default async function HomePage({
           {home.totalWaiting > 0 && next ? (
             <p className="home-cta">
               <Link href={decisionHref(next.id, HOME_SCOPE)} className="home-cta-btn">
-                {startCtaLabel()} →
+                {startCtaLabel()}
               </Link>
-              <a href="#how-to-use" className="home-cta-link">
-                How to use the desk
-              </a>
             </p>
           ) : null}
         </header>
 
-        <section className="home-section" aria-labelledby="home-status">
-          <h2 id="home-status" className="home-h2">
+        <section className="home-section home-status" aria-labelledby="home-status">
+          <h2 id="home-status" className="sr-only">
             At a glance
           </h2>
-          <ul className="home-tiles">
+          <ul className="home-counts">
             {home.counts.map((c) => (
               <li key={c.view}>
                 <Link href={c.href} className={`home-tile ${c.view === "waiting" ? "home-tile-wait" : ""}`}>
-                  <span className="home-tile-count">{c.count}</span>
-                  <span className="home-tile-label">{c.label}</span>
-                  {c.view === "done" ? <span className="home-tile-note">Done this week {weekDone}</span> : null}
+                  <span className="home-tile-count">{c.view === "done" ? weekDone : c.count}</span>
+                  <span className="home-tile-label">{c.view === "done" ? "Done this week" : c.label}</span>
                 </Link>
               </li>
             ))}
           </ul>
-          <p className="home-more">
-            <Link href={BOARD_HREF}>Your tasks are on the Board →</Link>
-            {" · "}
-            <Link href={REVIEW_HREF}>Review</Link>
-            {" · "}
-            <Link href={BATCH_HREF}>Batch similar</Link>
-            {" · "}
-            <Link href={STATS_HREF}>Stats</Link>
-            {" · "}
-            <Link href={CHATS_HREF}>Chats</Link>
-          </p>
         </section>
 
         <section className="home-section" aria-labelledby="home-session">
@@ -193,56 +189,55 @@ export default async function HomePage({
         ) : null}
 
         {next ? (
-          <section
-            className={`home-object ${next.revisitState === "expired" ? "home-object-revisit" : ""}`}
-            aria-labelledby="home-top"
-          >
-            <p className="kicker">{next.revisitState === "expired" ? "Revisit" : "Next up"}</p>
-            <h2 id="home-top" className="decision-title">
-              <Link href={decisionHref(next.id, HOME_SCOPE)}>{displayTitle(next.item)}</Link>
+          <section className="home-section" aria-labelledby="home-top">
+            <h2 id="home-top" className="home-h2">
+              Next up. <span className="two-weight-muted">{queueSortPhrase(sort) === "highest-stakes" ? "Highest-stakes." : "Oldest first."}</span>
             </h2>
-            <p className="decision-meta">
-              {next.project ?? "Unassigned"}
-              {raisedByLabel(next.raisedBy) ? ` · ${raisedByLabel(next.raisedBy)}` : ""} · {cardAge(next, now)}
-            </p>
-            <p className="verdict-need">{next.decisionNeeded ?? "No decision text on this row."}</p>
-            <DecisionBrief row={next} essentialsOnly />
-            {timeoutNoticeTomorrow(next, today, STATUS.waiting, { classOn: timeoutClassOn() }) ? (
-              <p className="decision-brief-note">This will be applied tomorrow unless you decide or extend the date.</p>
-            ) : null}
-            <ContinueAnyway complete={session.complete}>
-              <DecisionPanel
-                row={next}
-                prevHref={null}
-                nextHref={null}
-                defaultParkDate={defaultRevisitDate(now, parkRevisitDays())}
-              />
-            </ContinueAnyway>
+            <div className={`home-object ${next.revisitState === "expired" ? "home-object-revisit" : ""}`}>
+              <p className="object-pills">
+                <span className="pill">{next.project ?? "Unassigned"}</span>
+                {agePill(next, now) ? <span className="pill">{agePill(next, now)}</span> : null}
+              </p>
+              <h3 className="decision-title">
+                <Link href={decisionHref(next.id, HOME_SCOPE)}>{displayTitle(next.item)}</Link>
+              </h3>
+              <p className="verdict-need">
+                <strong>Decision needed:</strong> {next.decisionNeeded ?? "No decision text on this row."}
+              </p>
+              {timeoutNoticeTomorrow(next, today, STATUS.waiting, { classOn: timeoutClassOn() }) ? (
+                <p className="decision-brief-note">This will be applied tomorrow unless you decide or extend the date.</p>
+              ) : null}
+              <ContinueAnyway complete={session.complete}>
+                <DecisionPanel
+                  row={next}
+                  prevHref={null}
+                  nextHref={null}
+                  defaultParkDate={defaultRevisitDate(now, parkRevisitDays())}
+                />
+              </ContinueAnyway>
+            </div>
           </section>
         ) : null}
 
         {home.oldest.length > 1 ? (
           <section className="home-section" aria-labelledby="home-oldest">
-            <h2 id="home-oldest" className="home-h2">
-              {waitingListLabel(sort)}
+            <h2 id="home-oldest" className="sr-only">
+              Also waiting
             </h2>
             <ol className="home-list">
-              {home.oldest.slice(1, 4).map((row) => (
+              {home.oldest.slice(1, 3).map((row) => (
                 <li key={row.id}>
                   <Link href={decisionHref(row.id, HOME_SCOPE)} className="home-item">
                     <span className="home-item-title">{displayTitle(row.item)}</span>
                     <span className="home-item-meta">
                       {row.project ?? "Unassigned"}
                       {raisedByLabel(row.raisedBy) ? ` · ${raisedByLabel(row.raisedBy)}` : ""}
-                      {row.costOfDelay ? ` · ${row.costOfDelay} delay` : ""} · {cardAge(row, now)}
                     </span>
+                    {agePill(row, now) ? <span className="age-pill">{agePill(row, now)}</span> : null}
                   </Link>
                 </li>
               ))}
             </ol>
-            <p className="home-more">
-              <Link href={deskHref({ view: "waiting" })}>All {home.totalWaiting} waiting on you →</Link>
-            </p>
           </section>
         ) : null}
 
@@ -276,26 +271,34 @@ export default async function HomePage({
 
         <section className="home-section home-guide" id="how-to-use" aria-labelledby="home-guide">
           <h2 id="home-guide" className="home-h2">
-            How to use the desk
+            How to use the Desk. <span className="two-weight-muted">Four habits.</span>
           </h2>
-          <h3 className="home-h3">Decide</h3>
-          <p>Open a decision, read the brief, and press Approve, Decline, Park or Discuss. You confirm before anything is saved.</p>
-          <p>
-            Approve moves the item to In flight. Decline is terminal (Declined). Park defers it with a revisit
-            date — nothing is deleted. Discuss keeps it waiting on you and opens a reply thread with the agent.
-            Press <kbd>n</kbd> to add a note first.
-          </p>
-          <h3 className="home-h3">Move through the queue</h3>
-          <p>
-            Prev and Next step through Waiting on you, {queueOrderHint(sort)}. Keyboard: <kbd>←</kbd>{" "}
-            <kbd>→</kbd> or <kbd>k</kbd> <kbd>j</kbd>, <kbd>a</kbd> <kbd>d</kbd> <kbd>p</kbd> <kbd>x</kbd> to
-            approve, decline, park or discuss, <kbd>Enter</kbd> to confirm and <kbd>Esc</kbd> to cancel.
-          </p>
-          <h3 className="home-h3">Board</h3>
-          <p>
-            The <Link href={BOARD_HREF}>Board</Link> is your task store as columns you configure. Drag a card
-            (or use Move), and Edit for title, area or due date. Press <kbd>N</kbd> to add a task.
-          </p>
+          <ol className="habits">
+            <li>
+              <span className="habits-n">1</span>
+              <p>
+                <strong>Decide.</strong> Open it, read it, press Approve, Decline or Discuss.
+              </p>
+            </li>
+            <li>
+              <span className="habits-n">2</span>
+              <p>
+                <strong>Move through the queue.</strong> Prev and Next, or <kbd>J</kbd> and <kbd>K</kbd>. {queueOrderHint(sort)}.
+              </p>
+            </li>
+            <li>
+              <span className="habits-n">3</span>
+              <p>
+                <strong>Ask the Desk agent.</strong> Only your buttons change anything.
+              </p>
+            </li>
+            <li>
+              <span className="habits-n">4</span>
+              <p>
+                <strong>Track to-dos on the Board.</strong> Press <kbd>N</kbd> to quick-add.
+              </p>
+            </li>
+          </ol>
         </section>
       </div>
     </DeskFrame>

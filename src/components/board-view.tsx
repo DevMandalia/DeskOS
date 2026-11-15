@@ -101,6 +101,7 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
     tasksRef.current = tasks;
   }, [tasks]);
   const quickRef = useRef<HTMLInputElement | null>(null);
+  const [openAdd, setOpenAdd] = useState(0);
 
   const [columns, setColumns] = useState<BoardColumn[]>(
     initial?.columns?.length ? initial.columns : resolveColumns(schema.statusOptions),
@@ -159,7 +160,7 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (isTyping(event.target)) return;
       event.preventDefault();
-      quickRef.current?.focus();
+      setOpenAdd((n) => n + 1);
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -223,8 +224,8 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
   );
 
   const add = useCallback(
-    async (text: string, pickedArea: string, due: string): Promise<boolean> => {
-      const status = quickAddStatus(columns);
+    async (text: string, pickedArea: string, due: string, statusOverride?: string | null): Promise<boolean> => {
+      const status = statusOverride || quickAddStatus(columns);
       const parsed = parseQuickAdd(text, areas);
       if (!parsed.title || !status) return false;
       const tempId = `tmp-${Date.now().toString(36)}`;
@@ -298,13 +299,25 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
   return (
     <div className="board">
       <header className="desk-head board-head">
-        <h1>Board</h1>
-        <p className="desk-sub">
-          {shown} {shown === 1 ? "task" : "tasks"}
-          {area ? ` in ${area}` : ""} · {storeLabel}
-          {synced ? ` · checked ${new Date(synced).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
-          {doing ? ` · ${doing.label} ${inProgress} / limit ${wipLimit}` : ""}
-        </p>
+        <div>
+          <h1 className="home-hello">
+            Board. <span className="home-hello-muted">Your to-dos.</span>
+          </h1>
+          <p className="desk-sub">
+            {shown} {shown === 1 ? "task" : "tasks"}
+            {area ? ` in ${area}` : ""} · {storeLabel}
+            {synced ? ` · checked ${new Date(synced).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
+            {doing ? ` · ${doing.label} ${inProgress} / limit ${wipLimit}` : ""}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="board-new"
+          onClick={() => setOpenAdd((n) => n + 1)}
+          disabled={!columns.some((c) => c.status)}
+        >
+          New to-do <kbd>N</kbd>
+        </button>
       </header>
 
       {wipConfirm ? (
@@ -330,7 +343,7 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
           </div>
         </div>
       ) : null}
-      <QuickAdd inputRef={quickRef} areas={areas} target={addTo?.label ?? null} onAdd={add} disabled={!columns.some((c) => c.status)} />
+      <QuickAdd inputRef={quickRef} areas={areas} target={addTo?.label ?? null} onAdd={add} disabled={!columns.some((c) => c.status)} hidden />
 
       <div className="board-tools">
         <label className="board-filter">
@@ -374,10 +387,13 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
               today={today}
               onMove={move}
               onEdit={update}
+              onAdd={add}
               doing={doing}
               focusId={activeFocus}
               onPin={pin}
               wipLimit={wipLimit}
+              inputRef={lane.key === addTo?.key ? quickRef : undefined}
+              openSignal={lane.key === addTo?.key ? openAdd : 0}
             />
           ))}
         </div>
@@ -399,12 +415,14 @@ function QuickAdd({
   target,
   onAdd,
   disabled,
+  hidden = false,
 }: {
   inputRef: React.RefObject<HTMLInputElement | null>;
   areas: string[];
   target: string | null;
-  onAdd: (text: string, area: string, due: string) => Promise<boolean>;
+  onAdd: (text: string, area: string, due: string, status?: string | null) => Promise<boolean>;
   disabled: boolean;
+  hidden?: boolean;
 }) {
   const [text, setText] = useState("");
   const [area, setArea] = useState("");
@@ -422,7 +440,7 @@ function QuickAdd({
   }
 
   return (
-    <form className="quick-add" onSubmit={submit} aria-label="Quick add a task">
+    <form className="quick-add" onSubmit={submit} aria-label="Quick add a task" hidden={hidden}>
       <label className="sr-only" htmlFor="quick-add-input">
         New task
       </label>
@@ -468,6 +486,94 @@ function QuickAdd({
   );
 }
 
+function LaneAdd({
+  areas,
+  status,
+  onAdd,
+  inputRef,
+  openSignal = 0,
+}: {
+  areas: string[];
+  status: string;
+  onAdd: (text: string, area: string, due: string, status?: string | null) => Promise<boolean>;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  openSignal?: number;
+}) {
+  const localRef = useRef<HTMLInputElement | null>(null);
+  const ref = inputRef ?? localRef;
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!openSignal) return;
+    setOpen(true);
+  }, [openSignal]);
+
+  useEffect(() => {
+    if (open) ref.current?.focus();
+  }, [open, ref]);
+  const [text, setText] = useState("");
+  const [area, setArea] = useState("");
+
+  function close() {
+    setOpen(false);
+    setText("");
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const value = text.trim();
+    if (!value) return;
+    setText("");
+    const ok = await onAdd(value, area, "", status);
+    if (ok) close();
+    else setText(value);
+  }
+
+  if (!open) {
+    return (
+      <button type="button" className="lane-add" onClick={() => setOpen(true)}>
+        + Add a to-do
+      </button>
+    );
+  }
+
+  return (
+    <form className="lane-add-form" onSubmit={submit}>
+      <input
+        ref={ref}
+        className="quick-add-input"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            close();
+          }
+        }}
+        placeholder="Add a to-do"
+        autoFocus
+        autoComplete="off"
+      />
+      <div className="quick-add-opts">
+        <label>
+          <span className="sr-only">Area (optional)</span>
+          <select value={area} onChange={(e) => setArea(e.target.value)} aria-label="Area (optional)">
+            <option value="">No area</option>
+            {areas.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <p className="quick-add-hint">
+        <kbd>Enter</kbd> to add, <kbd>Esc</kbd> to cancel
+      </p>
+    </form>
+  );
+}
+
 function Lane({
   lane,
   columns,
@@ -475,10 +581,13 @@ function Lane({
   today,
   onMove,
   onEdit,
+  onAdd,
   doing,
   focusId,
   onPin,
   wipLimit,
+  inputRef,
+  openSignal,
 }: {
   lane: BoardLane;
   columns: BoardColumn[];
@@ -486,10 +595,13 @@ function Lane({
   today: string;
   onMove: (task: Task, key: ColumnKey) => void;
   onEdit: (task: Task, patch: TaskPatch, what: string) => Promise<void>;
+  onAdd: (text: string, area: string, due: string, status?: string | null) => Promise<boolean>;
   doing: BoardColumn | null;
   focusId: string | null;
   onPin: (id: string | null) => void;
   wipLimit: number;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  openSignal?: number;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: lane.key, disabled: !lane.status });
   const [all, setAll] = useState(false);
@@ -499,7 +611,7 @@ function Lane({
     <section
       ref={setNodeRef}
       role="listitem"
-      className={`lane lane-${lane.key} ${isOver ? "lane-over" : ""} ${lane.status ? "" : "lane-off"}`}
+      className={`lane lane-${lane.key} ${isOver ? "lane-over" : ""} ${lane.status ? "" : "lane-off"} ${isDoingLane ? "lane-doing" : ""}`}
       aria-labelledby={`lane-${lane.key}`}
       data-lane={lane.key}
     >
@@ -507,16 +619,13 @@ function Lane({
         <span>{lane.label}</span>
         <span className="lane-count">{lane.tasks.length}</span>
       </h2>
+      {lane.status ? (
+        <LaneAdd areas={areas} status={lane.status} onAdd={onAdd} inputRef={inputRef} openSignal={openSignal} />
+      ) : null}
       {!lane.status ? (
         <p className="lane-empty">
           This board has no “{lane.label}” status yet. Add that status on the store, or drop BOARD_COLUMNS,
           and this column starts taking cards.
-        </p>
-      ) : lane.tasks.length === 0 ? (
-        <p className="lane-empty">
-          {/to do|todo|ready/i.test(lane.label)
-            ? "Nothing is ready. Pull from Backlog, or leave this as the ready list."
-            : "Nothing here."}
         </p>
       ) : null}
       <ul className="lane-cards">
@@ -596,7 +705,7 @@ function TaskCard({
 
   return (
     <li
-      className={`task ${isDragging ? "task-dragging" : ""} ${temp ? "task-saving" : ""} ${focused ? "task-focus" : ""} ${overflow ? "task-overflow" : ""}`}
+            className={`task ${isDragging ? "task-dragging" : ""} ${temp ? "task-saving task-added" : ""} ${focused ? "task-focus" : ""} ${overflow ? "task-overflow" : ""}`}
       data-task={task.id}
     >
       {editing ? (

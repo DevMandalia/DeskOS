@@ -7,7 +7,13 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { isStaticDemo } from "@/lib/demo-mode";
 import { isAuthBypass } from "@/lib/env";
 
-export function SiteHeader({ email }: { email?: string | null }) {
+export function SiteHeader({
+  email,
+  waiting = 0,
+}: {
+  email?: string | null;
+  waiting?: number;
+}) {
   const demo = isStaticDemo();
   const bypass = isAuthBypass();
   return (
@@ -16,10 +22,18 @@ export function SiteHeader({ email }: { email?: string | null }) {
         <div className="site-header-start">
           <DrawerToggle drawer="nav" />
           <Link href="/" className="brand">
-            <span className="brand-name">DeskOS</span>
+            <span className="brand-name">
+              <span className="live-dot" aria-hidden="true" />
+              Desk
+            </span>
           </Link>
         </div>
         <div className="site-header-end">
+          {waiting > 0 ? (
+            <Link href="/waiting" className="waiting-pill">
+              {waiting} waiting
+            </Link>
+          ) : null}
           <DrawerToggle drawer="chat" />
           <AccountMenu>
             <ThemeToggle />

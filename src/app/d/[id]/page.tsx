@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BlockList } from "@/components/block-renderer";
 import { DecisionBrief } from "@/components/decision-brief";
 import { DecisionPanel } from "@/components/decision-panel";
 import { DemoDesk } from "@/components/demo-desk";
+import { DecisionToolbar } from "@/components/decision-toolbar";
 import { DeskFrame } from "@/components/desk-frame";
 import { DiscussionThread } from "@/components/discussion-thread";
 import { raisedByLabel } from "@/lib/agent-ref";
@@ -19,7 +19,7 @@ import {
   type DeskScope,
 } from "@/lib/nav";
 import { defaultRevisitDate, parkRevisitDays } from "../../../../contract";
-import { cardAge, deskOrder, displayTitle } from "@/lib/queue";
+import { agePill, cardAge, deskOrder, displayTitle } from "@/lib/queue";
 import { getOwnerRow, listOwnerRows } from "@/lib/owner-rows";
 import { getRowBody, listDiscussion, neighbors } from "@/lib/rows";
 import { DEMO_DECISION_IDS, demoDecisions } from "@/lib/seed";
@@ -74,26 +74,33 @@ export default async function DecisionPage({
   return (
     <DeskFrame email={user.email} rows={rows} scope={scope} currentId={row.id}>
       <article className="decision">
-        <nav className="crumb" aria-label="Breadcrumb">
-          <Link href={deskHref(scope)}>
-            ← {VIEW_LABEL[scope.view]}
-            {area ? ` · ${area}` : ""}
-          </Link>
-        </nav>
+        <DecisionToolbar
+          backHref={deskHref(scope)}
+          backLabel={`${VIEW_LABEL[scope.view]}${area ? ` · ${area}` : ""}`}
+          prevHref={prev ? hrefFor(prev.id) : null}
+          nextHref={next ? hrefFor(next.id) : null}
+          position={index >= 0 ? { index: index + 1, total: ordered.length } : null}
+        />
 
+        <p className="object-pills">
+          <span className="pill">{row.project ?? "Unassigned"}</span>
+          {agePill(row, new Date()) ? <span className="pill">{agePill(row, new Date())}</span> : null}
+        </p>
         <h1 className="decision-title">{displayTitle(row.item)}</h1>
         <p className="decision-meta">{meta.join(" · ")}</p>
 
-        <section className="verdict" aria-label="Decision needed">
+        <section className="verdict decision-object" aria-label="Decision needed">
           <p className="kicker">Decision needed</p>
           <p className="verdict-need">{row.decisionNeeded ?? "No decision text on this row."}</p>
           {row.nextStep ? (
             <p className="verdict-next">
-              <span className="verdict-next-label">Next step:</span> {row.nextStep}
+              <span className="verdict-next-label">Next step</span>
+              <br />
+              {row.nextStep}
             </p>
           ) : null}
-          <DecisionBrief row={row} />
         </section>
+        <DecisionBrief row={row} />
 
         <DecisionPanel
           row={row}

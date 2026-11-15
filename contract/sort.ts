@@ -59,6 +59,15 @@ export function queueOrderHint(sort: QueueSort): string {
   return sort === "stakes" ? "highest-stakes first" : "oldest first";
 }
 
+/** Short phrase for two-weight headlines. Default sort is highest-stakes, not oldest first. */
+export function queueSortPhrase(sort: QueueSort): string {
+  return sort === "stakes" ? "highest-stakes" : "oldest first";
+}
+
+export function queueHeadline(sort: QueueSort, count: number): { lead: string; rest: string } {
+  return { lead: "Waiting on you.", rest: `${count}, ${queueSortPhrase(sort)}.` };
+}
+
 export type SortableDecision = {
   costOfDelay?: CostOfDelay | null;
   doorType?: DoorType | null;

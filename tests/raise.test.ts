@@ -10,6 +10,7 @@ import {
   DEFAULT_QUEUE_SORT,
   parseQueueSort,
   parseRaiseBrief,
+  queueHeadline,
   resolveQueueSort,
   startCtaLabel,
 } from "../contract";
@@ -153,6 +154,11 @@ describe("QUEUE_SORT", () => {
 
   it("keeps the Home queue button at Start with the highest-stakes", () => {
     expect(startCtaLabel()).toBe("Start with the highest-stakes");
+  });
+
+  it("writes the waiting header as highest-stakes, not oldest first", () => {
+    expect(queueHeadline("stakes", 12)).toEqual({ lead: "Waiting on you.", rest: "12, highest-stakes." });
+    expect(queueHeadline("age", 4)).toEqual({ lead: "Waiting on you.", rest: "4, oldest first." });
   });
 });
 

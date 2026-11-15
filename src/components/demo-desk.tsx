@@ -10,10 +10,11 @@ import { DecisionPanel } from "@/components/decision-panel";
 import { DeskList } from "@/components/index-view";
 import { demoBanner } from "@/lib/demo-mode";
 import { demoBoard, loadDemoState } from "@/lib/demo-store";
-import { startCtaLabel, waitingListLabel } from "../../contract";
+import { queueHeadline, queueSortPhrase, startCtaLabel } from "../../contract";
 import { BOARD_HREF, VIEW_LABEL, decisionHref, deskHref, parseView, scopeRows, viewFromSlug, type DeskScope } from "@/lib/nav";
 import { boardToday } from "@/lib/board";
-import { cardAge, deskOrder, displayTitle, parkedQueue, queueOrderHint, queueSort, waitingQueue } from "@/lib/queue";
+import { DecisionToolbar } from "@/components/decision-toolbar";
+import { agePill, cardAge, deskOrder, displayTitle, parkedQueue, queueOrderHint, queueSort, waitingQueue } from "@/lib/queue";
 import { DEMO_DECISION_IDS } from "@/lib/seed";
 import { raisedByLabel } from "@/lib/agent-ref";
 import type { BriefRow } from "@/lib/types";
@@ -84,7 +85,9 @@ function DemoHome({ rows }: { rows: BriefRow[] }) {
   return (
     <div className="home">
       <header className="desk-head">
-        <h1>Home</h1>
+        <h1 className="home-hello">
+          Good morning, Alex. <span className="home-hello-muted">Here&apos;s what needs you.</span>
+        </h1>
         <p className="home-lede">
           {waiting.length === 0
             ? "Nothing is waiting on you right now."
@@ -93,13 +96,15 @@ function DemoHome({ rows }: { rows: BriefRow[] }) {
         {waiting[0] ? (
           <p className="home-cta">
             <Link href={decisionHref(waiting[0].id, { view: "waiting" })} className="home-cta-btn">
-              {startCtaLabel()} →
+              {startCtaLabel()}
             </Link>
           </p>
         ) : null}
       </header>
       <section className="home-section">
-        <h2 className="home-h2">{waitingListLabel(sort)}</h2>
+        <h2 className="home-h2">
+          Next up. <span className="two-weight-muted">{queueSortPhrase(sort) === "highest-stakes" ? "Highest-stakes." : "Oldest first."}</span>
+        </h2>
         <ol className="home-list">
           {waiting.slice(0, 5).map((row) => (
             <li key={row.id}>
@@ -130,6 +135,7 @@ function DemoView({ rows, scope }: { rows: BriefRow[]; scope: DeskScope }) {
         ? parkedQueue(visible)
         : deskOrder(visible);
   const sort = queueSort();
+  const headline = scope.view === "waiting" ? queueHeadline(sort, list.length) : null;
   const orderHint =
     scope.view === "waiting" && list.length > 0
       ? ` · ${queueOrderHint(sort)}`
@@ -139,11 +145,19 @@ function DemoView({ rows, scope }: { rows: BriefRow[]; scope: DeskScope }) {
   return (
     <div className="desk">
       <header className="desk-head">
-        <h1>{VIEW_LABEL[scope.view]}</h1>
-        <p className="desk-sub">
-          {list.length} {list.length === 1 ? "decision" : "decisions"}
-          {orderHint}
-        </p>
+        {headline ? (
+          <h1 className="home-hello">
+            {headline.lead} <span className="home-hello-muted">{headline.rest}</span>
+          </h1>
+        ) : (
+          <h1>{VIEW_LABEL[scope.view]}</h1>
+        )}
+        {headline ? null : (
+          <p className="desk-sub">
+            {list.length} {list.length === 1 ? "decision" : "decisions"}
+            {orderHint}
+          </p>
+        )}
       </header>
       <DeskList
         rows={list}
@@ -179,16 +193,24 @@ function DemoDecision({ rows, id, scope }: { rows: BriefRow[]; id: string; scope
   ].filter(Boolean);
   return (
     <article className="decision">
-      <nav className="crumb">
-        <Link href={deskHref(scope)}>← {VIEW_LABEL[scope.view]}</Link>
-      </nav>
+      <DecisionToolbar
+        backHref={deskHref(scope)}
+        backLabel={VIEW_LABEL[scope.view]}
+        prevHref={prev ? decisionHref(prev.id, scope) : null}
+        nextHref={next ? decisionHref(next.id, scope) : null}
+        position={index >= 0 ? { index: index + 1, total: ordered.length } : null}
+      />
+      <p className="object-pills">
+        <span className="pill">{row.project ?? "Unassigned"}</span>
+        {agePill(row, new Date()) ? <span className="pill">{agePill(row, new Date())}</span> : null}
+      </p>
       <h1 className="decision-title">{displayTitle(row.item)}</h1>
       <p className="decision-meta">{meta.join(" · ")}</p>
-      <section className="verdict" aria-label="Decision needed">
+      <section className="verdict decision-object" aria-label="Decision needed">
         <p className="kicker">Decision needed</p>
         <p className="verdict-need">{row.decisionNeeded ?? "No decision text on this row."}</p>
-        <DecisionBrief row={row} />
       </section>
+      <DecisionBrief row={row} />
       <DecisionPanel
         row={row}
         prevHref={prev ? decisionHref(prev.id, scope) : null}
