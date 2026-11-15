@@ -1,12 +1,14 @@
+import { VERDICT_CHOICES, isVerdictChoice, verdictBucket, type VerdictChoice } from "../../contract";
 import { deskTimezone } from "@/lib/env";
 
-export const CHOICES = ["Approve", "Decline", "Discuss"] as const;
-export type Choice = (typeof CHOICES)[number];
+export const CHOICES = VERDICT_CHOICES;
+export type Choice = VerdictChoice;
 
 export const STATUS = {
   waiting: "Waiting on you",
   inFlight: "In flight",
   parked: "Parked",
+  declined: "Declined",
   done: "Done",
 } as const;
 
@@ -14,18 +16,19 @@ export type StatusName = (typeof STATUS)[keyof typeof STATUS];
 
 export const SAVED_TOAST = "Saved. The lead agent will pick it up.";
 
-const STATUS_BY_CHOICE: Record<Choice, StatusName> = {
-  Approve: STATUS.inFlight,
-  Decline: STATUS.parked,
-  Discuss: STATUS.waiting,
-};
+const STATUS_BY_BUCKET = {
+  in_flight: STATUS.inFlight,
+  declined: STATUS.declined,
+  parked: STATUS.parked,
+  waiting: STATUS.waiting,
+} as const;
 
 export function isChoice(value: string): value is Choice {
-  return (CHOICES as readonly string[]).includes(value);
+  return isVerdictChoice(value);
 }
 
 export function statusForChoice(choice: Choice): StatusName {
-  return STATUS_BY_CHOICE[choice];
+  return STATUS_BY_BUCKET[verdictBucket(choice)];
 }
 
 export function normalizeOffset(timeZoneName: string): string {
@@ -65,13 +68,20 @@ export function formatIsoPT(date: Date): string {
   return formatIsoInZone(date, "America/Los_Angeles");
 }
 
-export function formatReply(choice: Choice, note: string, at: Date): string {
+export function formatReply(
+  choice: Choice,
+  note: string,
+  at: Date,
+  extra?: { revisitAt?: string | null },
+): string {
   const iso = formatIsoInZone(at);
   const trimmed = note.trim();
+  const revisit =
+    choice === "Park" && extra?.revisitAt ? ` (revisit ${extra.revisitAt})` : "";
   if (trimmed) {
-    return `${choice} — ${trimmed} (via DeskOS, ${iso})`;
+    return `${choice} — ${trimmed}${revisit} (via DeskOS, ${iso})`;
   }
-  return `${choice} — (via DeskOS, ${iso})`;
+  return `${choice} —${revisit} (via DeskOS, ${iso})`;
 }
 
 export function prependReply(
@@ -113,6 +123,7 @@ export type NotifyPayload = {
   note: string;
   at: string;
   agent_id?: string | null;
+  revisit_at?: string | null;
 };
 
 export type NotifyBody = NotifyPayload & { type: "desk_decision" };
@@ -129,6 +140,7 @@ export function buildNotifyPayload(input: NotifyPayload): NotifyBody {
     note: input.note,
     at: input.at,
     agent_id: input.agent_id ?? null,
+    revisit_at: input.revisit_at ?? null,
   };
 }
 
@@ -137,7 +149,12 @@ export const STATUS_RANK: Record<string, number> = {
   [STATUS.inFlight]: 1,
   [STATUS.parked]: 2,
   [STATUS.done]: 3,
+  [STATUS.declined]: 4,
 };
+
+export function isClosedStatus(status: string | null | undefined): boolean {
+  return status === STATUS.done || status === STATUS.declined;
+}
 
 export function compareStatus(a: string | null, b: string | null): number {
   return (STATUS_RANK[a ?? ""] ?? 9) - (STATUS_RANK[b ?? ""] ?? 9);

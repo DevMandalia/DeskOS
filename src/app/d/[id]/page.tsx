@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BlockList } from "@/components/block-renderer";
+import { DecisionBrief } from "@/components/decision-brief";
 import { DecisionPanel } from "@/components/decision-panel";
 import { DemoDesk } from "@/components/demo-desk";
 import { DeskFrame } from "@/components/desk-frame";
@@ -17,6 +18,7 @@ import {
   VIEW_LABEL,
   type DeskScope,
 } from "@/lib/nav";
+import { defaultRevisitDate, parkRevisitDays } from "../../../../contract";
 import { cardAge, deskOrder, displayTitle } from "@/lib/queue";
 import { getRow, getRowBody, listDiscussion, listRows, neighbors } from "@/lib/rows";
 import { DEMO_DECISION_IDS, demoDecisions } from "@/lib/seed";
@@ -61,7 +63,8 @@ export default async function DecisionPage({
   const hrefFor = (target: string) => decisionHref(target, scope);
   const blocks = await getRowBody(row);
   const thread = await listDiscussion(row.id);
-  const closed = row.lastChoice === "Approve" || row.lastChoice === "Decline";
+  const closed =
+    row.lastChoice === "Approve" || row.lastChoice === "Decline" || row.lastChoice === "Park";
   const meta = [
     row.project ?? "Unassigned",
     raisedByLabel(row.raisedBy) ? `Raised by ${raisedByLabel(row.raisedBy)}` : null,
@@ -89,6 +92,7 @@ export default async function DecisionPage({
               <span className="verdict-next-label">Next step:</span> {row.nextStep}
             </p>
           ) : null}
+          <DecisionBrief row={row} />
         </section>
 
         <DecisionPanel
@@ -96,6 +100,7 @@ export default async function DecisionPage({
           prevHref={prev ? hrefFor(prev.id) : null}
           nextHref={next ? hrefFor(next.id) : null}
           position={index >= 0 ? { index: index + 1, total: ordered.length } : null}
+          defaultParkDate={defaultRevisitDate(new Date(), parkRevisitDays())}
         />
 
         <DiscussionThread

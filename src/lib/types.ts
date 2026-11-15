@@ -1,3 +1,5 @@
+import type { CostOfDelay, DecisionKind, DoorType, VerdictChoice } from "../../contract";
+
 export type RichSpan = {
   text: string;
   href?: string | null;
@@ -71,7 +73,7 @@ export type DiscussionMessage = {
   at: string;
 };
 
-/** One decision the owner can Approve / Decline / Discuss. */
+/** One decision the owner can Approve / Decline / Park / Discuss. */
 export type Decision = {
   id: string;
   url: string;
@@ -88,7 +90,16 @@ export type Decision = {
   lastUpdated: string | null;
   raisedBy: AgentRef | null;
   /** Last recorded verdict choice, if any. */
-  lastChoice: "Approve" | "Decline" | "Discuss" | null;
+  lastChoice: VerdictChoice | null;
+  kind?: DecisionKind | null;
+  options?: string[] | null;
+  recommendation?: string | null;
+  door?: DoorType | null;
+  costOfDelay?: CostOfDelay | null;
+  defaultIfTimeout?: string | null;
+  deadline?: string | null;
+  parentDecisionId?: string | null;
+  revisitAt?: string | null;
 };
 
 /** @deprecated Use Decision. */
@@ -104,14 +115,23 @@ export type DecisionCreate = {
   body?: DeskBlock[] | string | null;
   url?: string | null;
   raisedBy?: AgentRef | null;
+  kind?: DecisionKind | null;
+  options?: string[] | null;
+  recommendation?: string | null;
+  door?: DoorType | null;
+  costOfDelay?: CostOfDelay | null;
+  defaultIfTimeout?: string | null;
+  deadline?: string | null;
+  parentDecisionId?: string | null;
 };
 
 export type DecisionVerdictInput = {
-  choice: "Approve" | "Decline" | "Discuss";
+  choice: VerdictChoice;
   note: string;
   reply: string;
   status: string;
   lastUpdated: string;
+  revisitAt?: string | null;
 };
 
 /**

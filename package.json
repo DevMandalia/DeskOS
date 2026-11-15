@@ -16,7 +16,9 @@
     "typecheck": "tsc --noEmit",
     "theme:sync": "bash scripts/sync-theme.sh",
     "theme:check": "bash scripts/sync-theme.sh --check",
-    "test": "vitest run && bash scripts/sync-theme.sh --check",
+    "contract:sync": "bash scripts/sync-contract.sh",
+    "contract:check": "bash scripts/sync-contract.sh --check",
+    "test": "vitest run && bash scripts/sync-theme.sh --check && bash scripts/sync-contract.sh --check",
     "mcp:pack": "node scripts/pack-mcp.mjs",
     "mcp:test": "node scripts/mcp-tool-list.mjs",
     "capture:demo": "node scripts/capture-demo.mjs"

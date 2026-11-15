@@ -5,13 +5,15 @@ import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { BoardView } from "@/components/board-view";
+import { DecisionBrief } from "@/components/decision-brief";
 import { DecisionPanel } from "@/components/decision-panel";
 import { DeskList } from "@/components/index-view";
 import { demoBanner } from "@/lib/demo-mode";
 import { demoBoard, loadDemoState } from "@/lib/demo-store";
+import { startCtaLabel, waitingListLabel } from "../../contract";
 import { BOARD_HREF, VIEW_LABEL, decisionHref, deskHref, parseView, scopeRows, viewFromSlug, type DeskScope } from "@/lib/nav";
 import { boardToday } from "@/lib/board";
-import { cardAge, deskOrder, displayTitle, waitingQueue } from "@/lib/queue";
+import { cardAge, deskOrder, displayTitle, parkedQueue, queueOrderHint, queueSort, waitingQueue } from "@/lib/queue";
 import { DEMO_DECISION_IDS } from "@/lib/seed";
 import { raisedByLabel } from "@/lib/agent-ref";
 import type { BriefRow } from "@/lib/types";
@@ -78,6 +80,7 @@ export function DemoDesk({
 
 function DemoHome({ rows }: { rows: BriefRow[] }) {
   const waiting = waitingQueue(rows);
+  const sort = queueSort();
   return (
     <div className="home">
       <header className="desk-head">
@@ -90,13 +93,13 @@ function DemoHome({ rows }: { rows: BriefRow[] }) {
         {waiting[0] ? (
           <p className="home-cta">
             <Link href={decisionHref(waiting[0].id, { view: "waiting" })} className="home-cta-btn">
-              Start with the oldest →
+              {startCtaLabel(sort)} →
             </Link>
           </p>
         ) : null}
       </header>
       <section className="home-section">
-        <h2 className="home-h2">Oldest waiting on you</h2>
+        <h2 className="home-h2">{waitingListLabel(sort)}</h2>
         <ol className="home-list">
           {waiting.slice(0, 5).map((row) => (
             <li key={row.id}>
@@ -120,14 +123,26 @@ function DemoHome({ rows }: { rows: BriefRow[] }) {
 
 function DemoView({ rows, scope }: { rows: BriefRow[]; scope: DeskScope }) {
   const visible = scopeRows(rows, scope);
-  const list = scope.view === "waiting" ? waitingQueue(visible) : deskOrder(visible);
+  const list =
+    scope.view === "waiting"
+      ? waitingQueue(visible)
+      : scope.view === "parked"
+        ? parkedQueue(visible)
+        : deskOrder(visible);
+  const sort = queueSort();
+  const orderHint =
+    scope.view === "waiting" && list.length > 0
+      ? ` · ${queueOrderHint(sort)}`
+      : scope.view === "parked" && list.length > 0
+        ? " · by revisit date"
+        : "";
   return (
     <div className="desk">
       <header className="desk-head">
         <h1>{VIEW_LABEL[scope.view]}</h1>
         <p className="desk-sub">
           {list.length} {list.length === 1 ? "decision" : "decisions"}
-          {scope.view === "waiting" && list.length > 0 ? " · oldest first" : ""}
+          {orderHint}
         </p>
       </header>
       <DeskList
@@ -172,6 +187,7 @@ function DemoDecision({ rows, id, scope }: { rows: BriefRow[]; id: string; scope
       <section className="verdict" aria-label="Decision needed">
         <p className="kicker">Decision needed</p>
         <p className="verdict-need">{row.decisionNeeded ?? "No decision text on this row."}</p>
+        <DecisionBrief row={row} />
       </section>
       <DecisionPanel
         row={row}

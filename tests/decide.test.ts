@@ -15,8 +15,12 @@ describe("statusForChoice", () => {
     expect(statusForChoice("Approve")).toBe("In flight");
   });
 
-  it("maps Decline to Parked", () => {
-    expect(statusForChoice("Decline")).toBe("Parked");
+  it("maps Decline to Declined (terminal)", () => {
+    expect(statusForChoice("Decline")).toBe("Declined");
+  });
+
+  it("maps Park to Parked", () => {
+    expect(statusForChoice("Park")).toBe("Parked");
   });
 
   it("maps Discuss to Waiting on you", () => {
@@ -37,6 +41,13 @@ describe("formatReply", () => {
     const at = new Date("2026-11-13T18:18:22.000Z");
     expect(formatReply("Decline", "  ", at)).toBe(
       "Decline — (via DeskOS, 2026-11-13T10:18:22-08:00)",
+    );
+  });
+
+  it("stamps a Park revisit date", () => {
+    const at = new Date("2026-11-13T18:18:22.000Z");
+    expect(formatReply("Park", "hold", at, { revisitAt: "2026-12-13" })).toContain(
+      "(revisit 2026-12-13)",
     );
   });
 });
@@ -102,7 +113,7 @@ describe("buildNotifyPayload", () => {
       at: "2026-11-14T21:30:00-08:00",
     };
     const payload = buildNotifyPayload(input);
-    expect(payload).toEqual({ type: "desk_decision", agent_id: null, ...input });
+    expect(payload).toEqual({ type: "desk_decision", agent_id: null, revisit_at: null, ...input });
     expect(JSON.parse(JSON.stringify(payload)).type).toBe("desk_decision");
   });
 });

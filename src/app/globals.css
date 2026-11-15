@@ -549,6 +549,11 @@ a:hover {
   color: var(--ds-teal);
 }
 
+.badge-declined {
+  background: var(--ds-peach);
+  color: var(--ds-orange);
+}
+
 .raised-by {
   display: inline-flex;
   align-items: center;
@@ -602,6 +607,63 @@ a:hover {
 .verdict-next {
   margin: 8px 0 0;
   font-size: 16px;
+}
+
+.decision-brief {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  background: var(--ds-card);
+  display: grid;
+  gap: 10px;
+}
+
+.decision-brief-row {
+  display: grid;
+  gap: 4px;
+}
+
+.decision-brief dt {
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ds-secondary);
+}
+
+.decision-brief dd {
+  margin: 0;
+  color: var(--ds-text);
+}
+
+.decision-brief ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.park-revisit {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  color: var(--ds-text);
+}
+
+.park-revisit input[type="date"] {
+  width: 100%;
+  max-width: 220px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  background: var(--ds-card);
+  color: var(--ds-text);
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.park-revisit-hint {
+  color: var(--ds-secondary);
+  font-size: 13px;
+  margin: 8px 0 0;
 }
 
 .meta-row {
@@ -754,6 +816,12 @@ a:hover {
   background: transparent;
   color: var(--ds-orange);
   border: 1px solid var(--ds-orange);
+}
+
+.btn-park {
+  background: transparent;
+  color: var(--ds-secondary);
+  border: 1px solid var(--ds-border);
 }
 
 .btn-discuss {

@@ -12,6 +12,7 @@ export async function decideAction(formData: FormData) {
     choice: String(formData.get("choice") ?? ""),
     note: String(formData.get("note") ?? ""),
     idempotencyKey: String(formData.get("idempotency_key") ?? "") || undefined,
+    revisitAt: String(formData.get("revisit_at") ?? "") || null,
   });
   return result;
 }

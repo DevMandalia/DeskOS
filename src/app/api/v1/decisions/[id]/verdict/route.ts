@@ -15,7 +15,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
   const discussion = await source.listDiscussion(row.id);
-  const closed = row.lastChoice === "Approve" || row.lastChoice === "Decline";
+  const closed =
+    row.lastChoice === "Approve" || row.lastChoice === "Decline" || row.lastChoice === "Park";
   return Response.json({
     decision_id: row.id,
     item: row.item,

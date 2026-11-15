@@ -1,3 +1,5 @@
+import { briefOf, withBrief } from "@/lib/brief-fields";
+import { parseChoiceFromReply, parseRevisitFromReply } from "../../../contract";
 import { hyphenateId, idsEqual, stripId } from "@/lib/ids";
 import { STATUS } from "@/lib/decide";
 import type {
@@ -111,6 +113,7 @@ export class NotionDecisionSource implements DecisionSource {
 
   async create(input: DecisionCreate): Promise<Decision> {
     if (!this.surface) return this.sidecar.create(input);
+    const brief = briefOf(input);
     const map = notionPropMap();
     const page = (await this.surface.pages.create({
       parent: { type: "data_source_id", data_source_id: decisionsDataSourceId() },
@@ -121,7 +124,7 @@ export class NotionDecisionSource implements DecisionSource {
         [map.raisedBy]: input.raisedBy ? { rich_text: chunkRichText(input.raisedBy.name) } : undefined,
       },
     })) as Record<string, unknown>;
-    return this.toDecision(page);
+    return withBrief(this.toDecision(page), brief);
   }
 
   async recordVerdict(id: string, verdict: DecisionVerdictInput): Promise<Decision> {
@@ -177,7 +180,8 @@ export class NotionDecisionSource implements DecisionSource {
       raisedBy: name
         ? { id: stripId(name), name, parentId: plain(props[map.parent]), parentName: plain(props[map.parent]) }
         : null,
-      lastChoice: null,
+      lastChoice: parseChoiceFromReply(plain(props[map.reply])),
+      revisitAt: parseRevisitFromReply(plain(props[map.reply])),
     };
   }
 }

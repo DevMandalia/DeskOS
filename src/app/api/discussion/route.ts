@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const source = await decisionSource();
   const row = await source.get(id);
   if (!row) return Response.json({ error: "not found" }, { status: 404 });
-  if (row.lastChoice === "Approve" || row.lastChoice === "Decline") {
+  if (row.lastChoice === "Approve" || row.lastChoice === "Decline" || row.lastChoice === "Park") {
     return Response.json({ error: "this decision is closed" }, { status: 409 });
   }
   const thread = await source.listDiscussion(row.id);

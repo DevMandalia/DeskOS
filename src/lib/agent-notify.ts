@@ -15,9 +15,16 @@ export type VerdictEvent = {
   at: string;
   raised_by: string | null;
   parent_agent: string | null;
+  revisit_at?: string | null;
 };
 
-export function verdictEvent(row: Decision, choice: Choice, note: string, at: string): VerdictEvent {
+export function verdictEvent(
+  row: Decision,
+  choice: Choice,
+  note: string,
+  at: string,
+  extra?: { revisit_at?: string | null },
+): VerdictEvent {
   return {
     type: "desk_verdict",
     decision_id: row.id,
@@ -28,6 +35,7 @@ export function verdictEvent(row: Decision, choice: Choice, note: string, at: st
     at,
     raised_by: row.raisedBy?.id ?? null,
     parent_agent: row.raisedBy?.parentId ?? null,
+    revisit_at: extra?.revisit_at ?? row.revisitAt ?? null,
   };
 }
 

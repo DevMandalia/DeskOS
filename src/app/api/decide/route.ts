@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     choice?: string;
     note?: string;
     idempotency_key?: string;
+    revisit_at?: string | null;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
     choice: body.choice,
     note: body.note ?? "",
     idempotencyKey: body.idempotency_key,
+    revisitAt: body.revisit_at,
   });
 
   if (!result.ok) {

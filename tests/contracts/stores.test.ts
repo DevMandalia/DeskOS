@@ -29,16 +29,35 @@ async function decisionContract(source: DecisionSource) {
     decisionNeeded: "Ship the sample this week?",
     project: "Ops",
     raisedBy: raised,
+    options: ["Ship this week", "Wait"],
+    recommendation: "Ship this week",
+    door: "two_way",
+    costOfDelay: "low",
+    deadline: "2026-11-20",
   });
   expect(created.item).toBe("Example: ship the sample?");
   expect(created.status).toBe(STATUS.waiting);
   expect(created.raisedBy?.name).toBe("Acme Test");
+  expect(created.door).toBe("two_way");
+  expect(created.costOfDelay).toBe("low");
 
   const listed = await source.list();
   expect(listed.some((d) => d.id === created.id)).toBe(true);
 
   const got = await source.get(created.id);
   expect(got?.id).toBe(created.id);
+
+  const parked = await source.recordVerdict(created.id, {
+    choice: "Park",
+    note: "later",
+    reply: "Park — later (revisit 2026-12-15) (via DeskOS, test)",
+    status: STATUS.parked,
+    lastUpdated: "2026-11-15T00:00:00.000Z",
+    revisitAt: "2026-12-15",
+  });
+  expect(parked.status).toBe(STATUS.parked);
+  expect(parked.lastChoice).toBe("Park");
+  expect(parked.revisitAt).toBe("2026-12-15");
 
   const verdict = await source.recordVerdict(created.id, {
     choice: "Approve",

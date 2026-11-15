@@ -1,4 +1,5 @@
 import { configuredColumns, resolveColumns } from "@/lib/board";
+import { briefOf, withBrief } from "@/lib/brief-fields";
 import { STATUS } from "@/lib/decide";
 import { idsEqual } from "@/lib/ids";
 import { spansFromPlain } from "@/lib/rich";
@@ -45,22 +46,25 @@ export class MemoryDecisionSource implements DecisionSource {
   async create(input: DecisionCreate): Promise<Decision> {
     const id = crypto.randomUUID();
     const raised = input.raisedBy ?? null;
-    const row: Decision = {
-      id,
-      url: input.url ?? `/d/${id}`,
-      item: input.item.trim() || "Untitled",
-      project: input.project ?? null,
-      status: input.status ?? STATUS.waiting,
-      owner: raised?.name ?? null,
-      ownerColor: null,
-      decisionNeeded: input.decisionNeeded ?? null,
-      nextStep: input.nextStep ?? null,
-      source: input.source ?? raised?.name ?? null,
-      reply: null,
-      lastUpdated: new Date().toISOString(),
-      raisedBy: raised,
-      lastChoice: null,
-    };
+    const row: Decision = withBrief(
+      {
+        id,
+        url: input.url ?? `/d/${id}`,
+        item: input.item.trim() || "Untitled",
+        project: input.project ?? null,
+        status: input.status ?? STATUS.waiting,
+        owner: raised?.name ?? null,
+        ownerColor: null,
+        decisionNeeded: input.decisionNeeded ?? null,
+        nextStep: input.nextStep ?? null,
+        source: input.source ?? raised?.name ?? null,
+        reply: null,
+        lastUpdated: new Date().toISOString(),
+        raisedBy: raised,
+        lastChoice: null,
+      },
+      briefOf(input),
+    );
     const state = this.snap();
     state.decisions.unshift(row);
     if (input.body) state.bodies[id] = input.body;
@@ -76,6 +80,7 @@ export class MemoryDecisionSource implements DecisionSource {
     row.reply = verdict.reply;
     row.lastUpdated = verdict.lastUpdated;
     row.lastChoice = verdict.choice;
+    row.revisitAt = verdict.revisitAt ?? row.revisitAt ?? null;
     await persistMemory();
     return clone(row);
   }

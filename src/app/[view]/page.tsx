@@ -6,7 +6,7 @@ import { DeskFrame } from "@/components/desk-frame";
 import { DeskList } from "@/components/index-view";
 import { isStaticDemo } from "@/lib/demo-mode";
 import { deskHref, scopeRows, VIEW_LABEL, VIEW_SLUG, viewFromSlug, type DeskScope } from "@/lib/nav";
-import { deskOrder, waitingQueue } from "@/lib/queue";
+import { deskOrder, parkedQueue, queueOrderHint, queueSort, waitingQueue } from "@/lib/queue";
 import { listRows } from "@/lib/rows";
 import { demoDecisions } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
@@ -48,10 +48,22 @@ export default async function ViewPage({
   const now = new Date();
   const all = await listRows();
   const visible = scopeRows(all, scope);
-  const rows = scope.view === "waiting" ? waitingQueue(visible) : deskOrder(visible);
+  const sort = queueSort();
+  const rows =
+    scope.view === "waiting"
+      ? waitingQueue(visible)
+      : scope.view === "parked"
+        ? parkedQueue(visible)
+        : deskOrder(visible);
   const label = VIEW_LABEL[scope.view];
   const noun = scope.view === "waiting" ? "decision" : "item";
   const where = scope.area ? ` in ${scope.area}` : "";
+  const orderHint =
+    scope.view === "waiting" && rows.length > 0
+      ? ` · ${queueOrderHint(sort)}`
+      : scope.view === "parked" && rows.length > 0
+        ? " · by revisit date"
+        : "";
 
   return (
     <DeskFrame email={user.email} rows={all} scope={scope}>
@@ -61,7 +73,7 @@ export default async function ViewPage({
           <p className="desk-sub">
             {rows.length} {rows.length === 1 ? noun : `${noun}s`}
             {where}
-            {scope.view === "waiting" && rows.length > 0 ? " · oldest first" : ""}
+            {orderHint}
             {scope.area ? (
               <>
                 {" · "}

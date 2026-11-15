@@ -82,7 +82,16 @@ describe("waitingQueue / deskOrder / counts", () => {
   ];
 
   it("queues waiting rows oldest first, undated last", () => {
-    expect(waitingQueue(rows).map((r) => r.id)).toEqual(["old", "new", "nodate"]);
+    expect(waitingQueue(rows, "age").map((r) => r.id)).toEqual(["old", "new", "nodate"]);
+  });
+
+  it("queues waiting rows by cost of delay when sort is stakes", () => {
+    const mixed = [
+      row({ id: "low", item: "Low", lastUpdated: "2026-11-01", costOfDelay: "low" }),
+      row({ id: "high", item: "High", lastUpdated: "2026-11-12", costOfDelay: "high" }),
+    ];
+    expect(waitingQueue(mixed, "stakes").map((r) => r.id)).toEqual(["high", "low"]);
+    expect(waitingQueue(mixed, "age").map((r) => r.id)).toEqual(["low", "high"]);
   });
 
   it("orders the desk queue first, then the rest by area", () => {

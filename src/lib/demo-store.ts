@@ -62,19 +62,29 @@ export function demoBoard(state: DemoState = loadDemoState()): TaskBoard {
 
 export function recordDemoVerdict(
   id: string,
-  choice: "Approve" | "Decline" | "Discuss",
+  choice: "Approve" | "Decline" | "Park" | "Discuss",
   note: string,
+  extra?: { revisitAt?: string | null },
 ): Decision | null {
   const state = loadDemoState();
   const row = state.decisions.find((d) => d.id === id);
   if (!row) return null;
   const status =
-    choice === "Approve" ? STATUS.inFlight : choice === "Decline" ? STATUS.parked : STATUS.waiting;
-  const line = `${choice} — ${note.trim() || "(demo)"} (via DeskOS, demo)`;
+    choice === "Approve"
+      ? STATUS.inFlight
+      : choice === "Decline"
+        ? STATUS.declined
+        : choice === "Park"
+          ? STATUS.parked
+          : STATUS.waiting;
+  const revisit =
+    choice === "Park" && extra?.revisitAt ? ` (revisit ${extra.revisitAt})` : "";
+  const line = `${choice} — ${note.trim() || "(demo)"}${revisit} (via DeskOS, demo)`;
   row.reply = row.reply ? `${line}\n${row.reply}` : line;
   row.status = status;
   row.lastChoice = choice;
   row.lastUpdated = new Date().toISOString();
+  row.revisitAt = choice === "Park" ? extra?.revisitAt ?? null : row.revisitAt ?? null;
   if (choice === "Discuss") {
     state.discussion.push({
       id: crypto.randomUUID(),

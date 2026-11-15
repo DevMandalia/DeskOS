@@ -55,3 +55,8 @@ export function isChatConfigured(): boolean {
 export function isDemoStore(): boolean {
   return process.env.DESK_DEMO === "1" || (isServerless() && !process.env.DATABASE_URL && !process.env.DECISION_SOURCE);
 }
+
+/** When "1", new raises must include the full decision brief. Off by default. */
+export function briefRequired(): boolean {
+  return (process.env.DESK_BRIEF_REQUIRED ?? "").trim() === "1";
+}

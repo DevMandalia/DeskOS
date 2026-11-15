@@ -3,6 +3,7 @@
  * Contract tests skip this adapter unless DESK_TEST_POSTGRES=1.
  */
 import { configuredColumns, resolveColumns, applyPatch } from "@/lib/board";
+import { briefJsonOf, briefOf, withBrief } from "@/lib/brief-fields";
 import { STATUS } from "@/lib/decide";
 import { hashesEqual, mintApiKey, mintWebhookSecret } from "@/lib/keys";
 import { spansFromPlain } from "@/lib/rich";
@@ -56,47 +57,57 @@ export class PostgresDecisionSource implements DecisionSource {
   async create(input: DecisionCreate): Promise<Decision> {
     const id = crypto.randomUUID();
     const raised = input.raisedBy ?? null;
-    const row: Decision = {
-      id,
-      url: input.url ?? `/d/${id}`,
-      item: input.item.trim() || "Untitled",
-      project: input.project ?? null,
-      status: input.status ?? STATUS.waiting,
-      owner: raised?.name ?? null,
-      ownerColor: null,
-      decisionNeeded: input.decisionNeeded ?? null,
-      nextStep: input.nextStep ?? null,
-      source: input.source ?? raised?.name ?? null,
-      reply: null,
-      lastUpdated: new Date().toISOString(),
-      raisedBy: raised,
-      lastChoice: null,
-    };
+    const row: Decision = withBrief(
+      {
+        id,
+        url: input.url ?? `/d/${id}`,
+        item: input.item.trim() || "Untitled",
+        project: input.project ?? null,
+        status: input.status ?? STATUS.waiting,
+        owner: raised?.name ?? null,
+        ownerColor: null,
+        decisionNeeded: input.decisionNeeded ?? null,
+        nextStep: input.nextStep ?? null,
+        source: input.source ?? raised?.name ?? null,
+        reply: null,
+        lastUpdated: new Date().toISOString(),
+        raisedBy: raised,
+        lastChoice: null,
+      },
+      briefOf(input),
+    );
     const body = input.body == null ? null : JSON.stringify(input.body);
     await (
       await pgPool()
     ).query(
-      `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+      `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json, brief_json)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
       [
         row.id, row.url, row.item, row.project, row.status, row.owner, row.ownerColor,
         row.decisionNeeded, row.nextStep, row.source, row.reply, row.lastUpdated, row.lastChoice,
         raised?.id ?? null, raised?.name ?? null, raised?.parentId ?? null, raised?.parentName ?? null, body,
+        briefJsonOf(row),
       ],
     );
     return row;
   }
 
   async recordVerdict(id: string, verdict: DecisionVerdictInput): Promise<Decision> {
+    const current = await this.get(id);
+    if (!current) throw new Error("not found");
     await (
       await pgPool()
-    ).query("UPDATE decisions SET status=$1, reply=$2, last_updated=$3, last_choice=$4 WHERE id=$5", [
-      verdict.status,
-      verdict.reply,
-      verdict.lastUpdated,
-      verdict.choice,
-      id,
-    ]);
+    ).query(
+      "UPDATE decisions SET status=$1, reply=$2, last_updated=$3, last_choice=$4, brief_json=$5 WHERE id=$6",
+      [
+        verdict.status,
+        verdict.reply,
+        verdict.lastUpdated,
+        verdict.choice,
+        briefJsonOf(current, { revisitAt: verdict.revisitAt ?? current.revisitAt ?? null }),
+        id,
+      ],
+    );
     const next = await this.get(id);
     if (!next) throw new Error("not found");
     return next;

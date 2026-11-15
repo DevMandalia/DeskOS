@@ -1,3 +1,5 @@
+import { briefJsonOf, withBrief } from "@/lib/brief-fields";
+import { briefFromRecord } from "../../../contract";
 import { idsEqual } from "@/lib/ids";
 import { spansFromPlain } from "@/lib/rich";
 import { STATUS } from "@/lib/decide";
@@ -53,22 +55,25 @@ export class SqliteDecisionSource implements DecisionSource {
   async create(input: DecisionCreate): Promise<Decision> {
     const id = crypto.randomUUID();
     const raised = input.raisedBy ?? null;
-    const row: Decision = {
-      id,
-      url: input.url ?? `/d/${id}`,
-      item: input.item.trim() || "Untitled",
-      project: input.project ?? null,
-      status: input.status ?? STATUS.waiting,
-      owner: raised?.name ?? null,
-      ownerColor: null,
-      decisionNeeded: input.decisionNeeded ?? null,
-      nextStep: input.nextStep ?? null,
-      source: input.source ?? raised?.name ?? null,
-      reply: null,
-      lastUpdated: new Date().toISOString(),
-      raisedBy: raised,
-      lastChoice: null,
-    };
+    const row: Decision = withBrief(
+      {
+        id,
+        url: input.url ?? `/d/${id}`,
+        item: input.item.trim() || "Untitled",
+        project: input.project ?? null,
+        status: input.status ?? STATUS.waiting,
+        owner: raised?.name ?? null,
+        ownerColor: null,
+        decisionNeeded: input.decisionNeeded ?? null,
+        nextStep: input.nextStep ?? null,
+        source: input.source ?? raised?.name ?? null,
+        reply: null,
+        lastUpdated: new Date().toISOString(),
+        raisedBy: raised,
+        lastChoice: null,
+      },
+      briefFromRecord(input),
+    );
     const body =
       input.body == null
         ? null
@@ -77,8 +82,8 @@ export class SqliteDecisionSource implements DecisionSource {
           : JSON.stringify(input.body);
     this.db()
       .prepare(
-        `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json, brief_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         row.id,
@@ -99,6 +104,7 @@ export class SqliteDecisionSource implements DecisionSource {
         raised?.parentId ?? null,
         raised?.parentName ?? null,
         body,
+        briefJsonOf(row),
       );
     return row;
   }
@@ -108,9 +114,16 @@ export class SqliteDecisionSource implements DecisionSource {
     if (!current) throw new Error("not found");
     this.db()
       .prepare(
-        "UPDATE decisions SET status = ?, reply = ?, last_updated = ?, last_choice = ? WHERE id = ?",
+        "UPDATE decisions SET status = ?, reply = ?, last_updated = ?, last_choice = ?, brief_json = ? WHERE id = ?",
       )
-      .run(verdict.status, verdict.reply, verdict.lastUpdated, verdict.choice, current.id);
+      .run(
+        verdict.status,
+        verdict.reply,
+        verdict.lastUpdated,
+        verdict.choice,
+        briefJsonOf(current, { revisitAt: verdict.revisitAt ?? current.revisitAt ?? null }),
+        current.id,
+      );
     return (await this.get(id))!;
   }
 

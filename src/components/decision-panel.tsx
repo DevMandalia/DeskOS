@@ -10,6 +10,7 @@ import {
   type Choice,
 } from "@/lib/decide";
 import { withBasePath } from "@/lib/base-path";
+import { defaultRevisitDate } from "../../contract";
 import { isStaticDemo } from "@/lib/demo-mode";
 import { recordDemoVerdict } from "@/lib/demo-store";
 import type { BriefRow } from "@/lib/types";
@@ -21,6 +22,7 @@ type Props = {
   /** 1-based position of this decision in the current desk order. */
   position?: { index: number; total: number } | null;
   onLocalSave?: () => void;
+  defaultParkDate?: string;
 };
 
 function isTyping(target: EventTarget | null): boolean {
@@ -34,9 +36,17 @@ function isTyping(target: EventTarget | null): boolean {
   );
 }
 
-export function DecisionPanel({ row, prevHref, nextHref, position, onLocalSave }: Props) {
+export function DecisionPanel({
+  row,
+  prevHref,
+  nextHref,
+  position,
+  onLocalSave,
+  defaultParkDate,
+}: Props) {
   const router = useRouter();
   const [note, setNote] = useState("");
+  const [revisitAt, setRevisitAt] = useState(defaultParkDate ?? defaultRevisitDate());
   const [pending, setPending] = useState<Choice | null>(null);
   const [confirming, setConfirming] = useState<Choice | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -87,7 +97,9 @@ export function DecisionPanel({ row, prevHref, nextHref, position, onLocalSave }
       setConfirming(null);
       try {
         if (isStaticDemo()) {
-          const savedRow = recordDemoVerdict(row.id, choice, note);
+          const savedRow = recordDemoVerdict(row.id, choice, note, {
+            revisitAt: choice === "Park" ? revisitAt : null,
+          });
           keyRef.current = crypto.randomUUID();
           setToast("Saved locally in this browser (demo).");
           if (savedRow) {
@@ -105,6 +117,7 @@ export function DecisionPanel({ row, prevHref, nextHref, position, onLocalSave }
             choice,
             note,
             idempotency_key: keyRef.current,
+            revisit_at: choice === "Park" ? revisitAt : null,
           }),
         });
         const data = (await response.json()) as {
@@ -131,7 +144,7 @@ export function DecisionPanel({ row, prevHref, nextHref, position, onLocalSave }
         setPending(null);
       }
     },
-    [note, row.id, router, onLocalSave],
+    [note, revisitAt, row.id, router, onLocalSave],
   );
 
   useEffect(() => {
@@ -171,6 +184,9 @@ export function DecisionPanel({ row, prevHref, nextHref, position, onLocalSave }
       } else if (event.key === "d") {
         event.preventDefault();
         setConfirming("Decline");
+      } else if (event.key === "p") {
+        event.preventDefault();
+        setConfirming("Park");
       } else if (event.key === "x") {
         event.preventDefault();
         setConfirming("Discuss");
@@ -257,8 +273,8 @@ export function DecisionPanel({ row, prevHref, nextHref, position, onLocalSave }
         </nav>
       </div>
       <p className="keys">
-        <kbd>←</kbd> <kbd>→</kbd> prev · next · <kbd>a</kbd> <kbd>d</kbd> <kbd>x</kbd> approve ·
-        decline · discuss · <kbd>n</kbd> note
+        <kbd>←</kbd> <kbd>→</kbd> prev · next · <kbd>a</kbd> <kbd>d</kbd> <kbd>p</kbd> <kbd>x</kbd>{" "}
+        approve · decline · park · discuss · <kbd>n</kbd> note
       </p>
 
       {saved ? (
@@ -296,6 +312,20 @@ export function DecisionPanel({ row, prevHref, nextHref, position, onLocalSave }
                 : `Your answer is saved on this desk and the raising agent (${row.owner ?? "the lead"}) is notified.`}
             </p>
             {note.trim() ? <blockquote>{note.trim()}</blockquote> : null}
+            {confirming === "Park" ? (
+              <label className="park-revisit">
+                Revisit on
+                <input
+                  type="date"
+                  value={revisitAt}
+                  onChange={(event) => setRevisitAt(event.target.value)}
+                />
+                <span className="park-revisit-hint">Nothing is deleted. On that date the desk will ask keep, park again, or decline.</span>
+              </label>
+            ) : null}
+            {confirming === "Decline" ? (
+              <p className="park-revisit-hint">Decline is terminal. Use Park if you may want this later.</p>
+            ) : null}
             <div className="modal-actions">
               <button
                 type="button"

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { parkRevisitLabel } from "@/components/decision-brief";
 import { raisedByLabel } from "@/lib/agent-ref";
 import { decisionHref, type DeskScope } from "@/lib/nav";
 import { cardAge, displayTitle } from "@/lib/queue";
@@ -10,6 +11,7 @@ const STATUS_SHORT: Record<string, string> = {
   "In flight": "In flight",
   Parked: "Parked",
   Done: "Done",
+  Declined: "Declined",
 };
 
 /**
@@ -31,6 +33,8 @@ export function DeskCard({
     scope.area ? null : (row.project ?? "Unassigned"),
     raisedByLabel(row.raisedBy),
     showStatus ? STATUS_SHORT[row.status ?? ""] ?? row.status : null,
+    row.costOfDelay ? `${row.costOfDelay} delay` : null,
+    parkRevisitLabel(row),
     cardAge(row, now),
   ].filter(Boolean);
   return (

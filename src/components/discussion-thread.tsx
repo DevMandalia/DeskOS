@@ -74,7 +74,7 @@ export function DiscussionThread({
       </h2>
       {shown.length === 0 ? (
         <p className="desk-sub">
-          Discuss keeps this item open. The agent replies here, then you take turns until you Approve or Decline.
+          Discuss keeps this item open. The agent replies here, then you take turns until you Approve, Decline, or Park.
         </p>
       ) : (
         <ol className="home-list">

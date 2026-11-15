@@ -1,6 +1,6 @@
 # DeskOS
 
-A self-hosted decision inbox for one operator. Agents raise decisions; you open one page per item, read the **verdict first**, and press **Approve**, **Decline**, or **Discuss**. Tasks live on a source-agnostic Board. Inspired by Brian Armstrong's chief-of-staff agent model.
+A self-hosted decision inbox for one operator. Agents raise decisions; you open one page per item, read the **brief**, and press **Approve**, **Decline**, **Park**, or **Discuss**. Tasks live on a source-agnostic Board. Inspired by Brian Armstrong's chief-of-staff agent model.
 
 This is a kit you run yourself. It is not a hosted product.
 
@@ -53,10 +53,11 @@ On Vercel the kit falls back to the in-memory store unless you set `DATABASE_URL
 
 ## What you get
 
-- One page per decision, verdict first, Approve / Decline / Discuss
-- Discuss opens a reply thread (owner and agent take turns) until Approve or Decline
+- One page per decision, brief first, Approve / Decline / Park / Discuss
+- Decline is terminal; Park defers with a revisit date (nothing is auto-deleted)
+- Discuss opens a reply thread (owner and agent take turns) until Approve, Decline, or Park
 - Board of tasks with configurable column names
-- Home, Waiting, In flight, Parked, Done
+- Home, Waiting, In flight, Parked, Done (Done includes Declined)
 - Dark mode, Prev / Next, keyboard shortcuts
 - Owner-only Auth.js sign-in (`OWNER_EMAIL` allowlist)
 - Agent HTTP API with hashed per-agent keys (`ddk_…`)
@@ -84,6 +85,9 @@ Pick adapters with env vars. **Nothing in `src/lib`, `src/app`, or `src/componen
 | `DESK_TIMEZONE` | IANA zone | `America/Los_Angeles` |
 | `DESK_DEMO` / `NEXT_PUBLIC_DESK_DEMO` | `1` | unset |
 | `NEXT_PUBLIC_BASE_PATH` | e.g. `/DeskOS` | empty (site root) |
+| `QUEUE_SORT` | `stakes` \| `age` | `stakes` in demo, `age` otherwise |
+| `DESK_BRIEF_REQUIRED` | `1` to require the full brief on new raises | unset (optional fields) |
+| `PARK_REVISIT_DAYS` | days until a new Park asks again | `30` |
 
 Notion is an **optional example** adapter (`adapters/notion`). See `adapters/notion/README.md`.
 
@@ -91,12 +95,20 @@ Notion is an **optional example** adapter (`adapters/notion`). See `adapters/not
 
 Create a key in **Settings**. The plaintext `ddk_…` value is shown once and stored hashed. The key is the agent's identity. A lead can register a sub-agent (`POST /api/v1/agents`); every decision and task records `raised_by` (and optional parent). Board cards and Waiting show that tag.
 
+Optional fields on `raise_decision` (all backward compatible — a title-only body still works): `kind`, `options`, `recommendation`, `door` (`two_way` \| `one_way`), `cost_of_delay` (`low` \| `medium` \| `high` \| `critical`), `default_if_timeout`, `deadline` (`YYYY-MM-DD`), `parent_id`. Bundles and non-decisions return **422**. Set `DESK_BRIEF_REQUIRED=1` to return **400** when the brief is missing. New raises only; existing rows are never rewritten.
+
 ```bash
-# raise_decision
+# raise_decision (old agents: title is enough)
 curl -sS -X POST "$DESK/api/v1/decisions" \
   -H "Authorization: Bearer $DESK_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title":"Renew the staging cert?","decision_needed":"Buy another year?"}'
+
+# raise_decision with the optional brief
+curl -sS -X POST "$DESK/api/v1/decisions" \
+  -H "Authorization: Bearer $DESK_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Renew the staging cert?","decision_needed":"Buy another year?","options":["Renew","Let it lapse"],"recommendation":"Renew","door":"two_way","cost_of_delay":"low","deadline":"2026-12-01"}'
 
 # add_task
 curl -sS -X POST "$DESK/api/v1/tasks" \
@@ -117,7 +129,7 @@ curl -sS -X POST "$DESK/api/v1/decisions/$ID/replies" \
   -d '{"message":"Cost is $14. Recommend yes."}'
 ```
 
-There is **no shared desk webhook**. Optional per-agent HMAC webhooks fire on Approve / Decline (`X-Desk-Signature: sha256=…`). Optional owner email / Slack alerts are separate.
+There is **no shared desk webhook**. Optional per-agent HMAC webhooks fire on Approve / Decline / Park (`X-Desk-Signature: sha256=…`). The payload may include `revisit_at`. Optional owner email / Slack alerts are separate.
 
 MCP: `dist/deskos.mcpb` (stdio). User config is desk URL + agent token. Tools: `raise_decision`, `add_task`, `list_items`, `get_verdict`, `reply_discussion`. Pack with `npm run mcp:pack`. Verify locally with `npm run mcp:test`.
 

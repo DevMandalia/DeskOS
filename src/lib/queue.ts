@@ -1,6 +1,25 @@
+import {
+  compareParked,
+  compareWaiting,
+  queueOrderHint,
+  resolveQueueSort,
+  type QueueSort,
+} from "../../contract";
+import { isStaticDemo } from "@/lib/demo-mode";
 import { deskTimezone } from "@/lib/env";
 import { STATUS, compareStatus } from "@/lib/decide";
 import type { BriefRow } from "@/lib/types";
+
+export function queueSort(): QueueSort {
+  return resolveQueueSort({
+    QUEUE_SORT: process.env.QUEUE_SORT,
+    NEXT_PUBLIC_QUEUE_SORT: process.env.NEXT_PUBLIC_QUEUE_SORT,
+    DESK_DEMO: process.env.DESK_DEMO,
+    NEXT_PUBLIC_DESK_DEMO: isStaticDemo() ? "1" : process.env.NEXT_PUBLIC_DESK_DEMO,
+  });
+}
+
+export { queueOrderHint };
 
 export function displayTitle(item: string): string {
   return item;
@@ -68,25 +87,18 @@ export function shortDate(value: string | null | undefined, now: Date = new Date
   return date.y === zoneDate(now).y ? label : `${label}, ${date.y}`;
 }
 
-function dateKey(value: string | null | undefined): string {
-  const date = toPtDate(value);
-  if (!date) return "9999-99-99";
-  return `${date.y}-${String(date.m).padStart(2, "0")}-${String(date.d).padStart(2, "0")}`;
-}
-
 export function isWaiting(row: BriefRow): boolean {
   return row.status === STATUS.waiting;
 }
 
-export function waitingQueue(rows: BriefRow[]): BriefRow[] {
+export function waitingQueue(rows: BriefRow[], sort: QueueSort = queueSort()): BriefRow[] {
+  return rows.filter(isWaiting).sort((a, b) => compareWaiting(a, b, sort));
+}
+
+export function parkedQueue(rows: BriefRow[]): BriefRow[] {
   return rows
-    .filter(isWaiting)
-    .sort(
-      (a, b) =>
-        dateKey(a.lastUpdated).localeCompare(dateKey(b.lastUpdated)) ||
-        (a.lastUpdated ?? "").localeCompare(b.lastUpdated ?? "") ||
-        a.item.localeCompare(b.item),
-    );
+    .filter((row) => row.status === STATUS.parked)
+    .sort((a, b) => compareParked(a, b));
 }
 
 export function othersByArea(rows: BriefRow[]): { area: string; rows: BriefRow[] }[] {

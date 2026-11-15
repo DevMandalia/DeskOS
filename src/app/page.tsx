@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { DemoDesk } from "@/components/demo-desk";
 import { DeskFrame } from "@/components/desk-frame";
 import { isStaticDemo } from "@/lib/demo-mode";
+import { startCtaLabel, waitingListLabel } from "../../contract";
 import { BOARD_HREF, buildHome, decisionHref, deskHref, legacyListHref, type DeskScope } from "@/lib/nav";
-import { ageDays, cardAge, displayTitle } from "@/lib/queue";
+import { ageDays, cardAge, displayTitle, queueOrderHint, queueSort } from "@/lib/queue";
 import { listRows } from "@/lib/rows";
 import { demoDecisions } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
@@ -18,6 +19,7 @@ const STATUS_WORD: Record<string, string> = {
   "In flight": "In flight",
   Parked: "Parked",
   Done: "Done",
+  Declined: "Declined",
 };
 
 export default async function HomePage({
@@ -40,7 +42,9 @@ export default async function HomePage({
   const now = new Date();
   const rows = await listRows();
   const home = buildHome(rows);
-  const oldestDays = home.oldest[0] ? ageDays(home.oldest[0].lastUpdated, now) : null;
+  const sort = queueSort();
+  const next = home.next;
+  const oldestDays = next ? ageDays(next.lastUpdated, now) : null;
   const oldestAge =
     oldestDays === null
       ? ""
@@ -59,10 +63,10 @@ export default async function HomePage({
               : `${home.totalWaiting} ${home.totalWaiting === 1 ? "decision is" : "decisions are"} waiting on you.`}
             {oldestAge}
           </p>
-          {home.totalWaiting > 0 ? (
+          {home.totalWaiting > 0 && next ? (
             <p className="home-cta">
-              <Link href={decisionHref(home.oldest[0].id, HOME_SCOPE)} className="home-cta-btn">
-                Start with the oldest →
+              <Link href={decisionHref(next.id, HOME_SCOPE)} className="home-cta-btn">
+                {startCtaLabel(sort)} →
               </Link>
               <a href="#how-to-use" className="home-cta-link">
                 How to use the desk
@@ -93,7 +97,7 @@ export default async function HomePage({
         {home.oldest.length > 0 ? (
           <section className="home-section" aria-labelledby="home-oldest">
             <h2 id="home-oldest" className="home-h2">
-              Oldest waiting on you
+              {waitingListLabel(sort)}
             </h2>
             <ol className="home-list">
               {home.oldest.map((row) => (
@@ -102,7 +106,8 @@ export default async function HomePage({
                     <span className="home-item-title">{displayTitle(row.item)}</span>
                     <span className="home-item-meta">
                       {row.project ?? "Unassigned"}
-                      {raisedByLabel(row.raisedBy) ? ` · ${raisedByLabel(row.raisedBy)}` : ""} · {cardAge(row, now)}
+                      {raisedByLabel(row.raisedBy) ? ` · ${raisedByLabel(row.raisedBy)}` : ""}
+                      {row.costOfDelay ? ` · ${row.costOfDelay} delay` : ""} · {cardAge(row, now)}
                     </span>
                   </Link>
                 </li>
@@ -126,7 +131,7 @@ export default async function HomePage({
                     href={decisionHref(row.id, {
                       ...HOME_SCOPE,
                       view: row.status === "Waiting on you" ? "waiting" : "all",
-                      includeDone: row.status === "Done",
+                      includeDone: row.status === "Done" || row.status === "Declined",
                     })}
                     className="home-item"
                   >
@@ -147,16 +152,17 @@ export default async function HomePage({
             How to use the desk
           </h2>
           <h3 className="home-h3">Decide</h3>
-          <p>Open a decision, read the verdict first, and press Approve, Decline or Discuss. You confirm before anything is saved.</p>
+          <p>Open a decision, read the brief, and press Approve, Decline, Park or Discuss. You confirm before anything is saved.</p>
           <p>
-            Approve moves the item to In flight. Decline parks it. Discuss keeps it waiting on you and opens a
-            reply thread with the agent. Press <kbd>n</kbd> to add a note first.
+            Approve moves the item to In flight. Decline is terminal (Declined). Park defers it with a revisit
+            date — nothing is deleted. Discuss keeps it waiting on you and opens a reply thread with the agent.
+            Press <kbd>n</kbd> to add a note first.
           </p>
           <h3 className="home-h3">Move through the queue</h3>
           <p>
-            Prev and Next step through Waiting on you, oldest first. Keyboard: <kbd>←</kbd> <kbd>→</kbd> or{" "}
-            <kbd>k</kbd> <kbd>j</kbd>, <kbd>a</kbd> <kbd>d</kbd> <kbd>x</kbd> to approve, decline or discuss,{" "}
-            <kbd>Enter</kbd> to confirm and <kbd>Esc</kbd> to cancel.
+            Prev and Next step through Waiting on you, {queueOrderHint(sort)}. Keyboard: <kbd>←</kbd>{" "}
+            <kbd>→</kbd> or <kbd>k</kbd> <kbd>j</kbd>, <kbd>a</kbd> <kbd>d</kbd> <kbd>p</kbd> <kbd>x</kbd> to
+            approve, decline, park or discuss, <kbd>Enter</kbd> to confirm and <kbd>Esc</kbd> to cancel.
           </p>
           <h3 className="home-h3">Board</h3>
           <p>

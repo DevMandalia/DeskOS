@@ -140,6 +140,7 @@ describe("buildHome", () => {
       { area: "B", waiting: 1, open: 2, href: "/waiting?area=B" },
     ]);
     expect(home.oldest.map((r) => r.id)).toEqual(["w2"]);
+    expect(home.next?.id).toBe("w2");
     expect(home.recent).toHaveLength(1);
     expect(home.totalWaiting).toBe(2);
   });

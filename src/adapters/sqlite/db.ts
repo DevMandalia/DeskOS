@@ -10,9 +10,11 @@ import {
   demoDecisions,
   demoTasks,
 } from "@/lib/seed";
+import { briefJsonOf, hydrateStoredDecision } from "@/lib/brief-fields";
 import type { Agent, AgentRef, Decision, DeskBlock, DiscussionMessage } from "@/lib/types";
 import { spansFromPlain } from "@/lib/rich";
 import type { Task } from "@/lib/tasks/types";
+import { parseChoiceFromReply, type VerdictChoice } from "../../../contract";
 
 type DatabaseSync = {
   exec(sql: string): void;
@@ -55,7 +57,8 @@ CREATE TABLE IF NOT EXISTS decisions (
   raised_by_name TEXT,
   parent_id TEXT,
   parent_name TEXT,
-  body_json TEXT
+  body_json TEXT,
+  brief_json TEXT
 );
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
@@ -122,22 +125,28 @@ function raised(row: {
 
 export function decisionFromRow(row: Record<string, unknown>): Decision {
   const r = raised(row);
-  return {
-    id: String(row.id),
-    url: String(row.url),
-    item: String(row.item),
-    project: (row.project as string | null) ?? null,
-    status: (row.status as string | null) ?? null,
-    owner: (row.owner as string | null) ?? r?.name ?? null,
-    ownerColor: (row.owner_color as string | null) ?? null,
-    decisionNeeded: (row.decision_needed as string | null) ?? null,
-    nextStep: (row.next_step as string | null) ?? null,
-    source: (row.source as string | null) ?? null,
-    reply: (row.reply as string | null) ?? null,
-    lastUpdated: (row.last_updated as string | null) ?? null,
-    raisedBy: r,
-    lastChoice: (row.last_choice as Decision["lastChoice"]) ?? null,
-  };
+  const reply = (row.reply as string | null) ?? null;
+  const lastChoice =
+    (row.last_choice as VerdictChoice | null) ?? parseChoiceFromReply(reply);
+  return hydrateStoredDecision(
+    {
+      id: String(row.id),
+      url: String(row.url),
+      item: String(row.item),
+      project: (row.project as string | null) ?? null,
+      status: (row.status as string | null) ?? null,
+      owner: (row.owner as string | null) ?? r?.name ?? null,
+      ownerColor: (row.owner_color as string | null) ?? null,
+      decisionNeeded: (row.decision_needed as string | null) ?? null,
+      nextStep: (row.next_step as string | null) ?? null,
+      source: (row.source as string | null) ?? null,
+      reply,
+      lastUpdated: (row.last_updated as string | null) ?? null,
+      raisedBy: r,
+      lastChoice,
+    },
+    row.brief_json == null ? null : String(row.brief_json),
+  );
 }
 
 export function taskFromRow(row: Record<string, unknown>): Task {
@@ -185,6 +194,13 @@ export function messageFromRow(row: Record<string, unknown>): DiscussionMessage 
   };
 }
 
+function ensureBriefColumn(db: DatabaseSync): void {
+  const cols = db.prepare("PRAGMA table_info(decisions)").all();
+  if (!cols.some((col) => String(col.name) === "brief_json")) {
+    db.exec("ALTER TABLE decisions ADD COLUMN brief_json TEXT");
+  }
+}
+
 function seedIfEmpty(db: DatabaseSync): void {
   const count = db.prepare("SELECT COUNT(*) AS n FROM decisions").get() as { n: number };
   if (count.n > 0) return;
@@ -219,8 +235,8 @@ function seedIfEmpty(db: DatabaseSync): void {
       ? JSON.stringify([{ id: `${d.id}-p`, type: "paragraph", rich: spansFromPlain(bodies[d.id]) } satisfies DeskBlock])
       : null;
     db.prepare(
-      `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json, brief_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       d.id,
       d.url,
@@ -240,6 +256,7 @@ function seedIfEmpty(db: DatabaseSync): void {
       d.raisedBy?.parentId ?? null,
       d.raisedBy?.parentName ?? null,
       body,
+      briefJsonOf(d),
     );
   }
   for (const t of demoTasks()) {
@@ -270,6 +287,7 @@ export function sqliteDb(file = sqlitePath()): DatabaseSync {
   if (g.__deskSqlite && g.__deskSqlitePath === file) return g.__deskSqlite;
   const db = openDatabase(file);
   db.exec(SCHEMA);
+  ensureBriefColumn(db);
   seedIfEmpty(db);
   g.__deskSqlite = db;
   g.__deskSqlitePath = file;

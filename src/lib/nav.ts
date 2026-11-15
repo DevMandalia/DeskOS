@@ -1,4 +1,4 @@
-import { STATUS } from "@/lib/decide";
+import { STATUS, isClosedStatus } from "@/lib/decide";
 import { waitingAreaCounts, waitingQueue } from "@/lib/queue";
 import type { BriefRow } from "@/lib/types";
 
@@ -98,12 +98,14 @@ export function decisionHref(id: string, scope: Partial<DeskScope>): string {
   return qs ? `/d/${id}?${qs}` : `/d/${id}`;
 }
 
-/** Rows visible in a scope: area, then status for a view; Done hidden unless asked for. */
+/** Rows visible in a scope: area, then status for a view; Done/Declined hidden unless asked for. */
 export function scopeRows(rows: BriefRow[], scope: DeskScope): BriefRow[] {
-  const includeDone = scope.includeDone || scope.view === "done";
+  const includeClosed = scope.includeDone || scope.view === "done";
   return rows.filter((row) => {
-    if (!includeDone && row.status === STATUS.done) return false;
+    if (!includeClosed && isClosedStatus(row.status)) return false;
     if (scope.area && (row.project ?? "Unassigned") !== scope.area) return false;
+    if (scope.view === "done") return isClosedStatus(row.status);
+    if (scope.view === "parked") return row.status === STATUS.parked;
     const status = VIEW_STATUS[scope.view];
     if (status && row.status !== status) return false;
     return true;
@@ -154,6 +156,7 @@ export type HomeModel = {
   oldest: BriefRow[];
   recent: BriefRow[];
   totalWaiting: number;
+  next: BriefRow | null;
 };
 
 /**
@@ -184,5 +187,12 @@ export function buildHome(rows: BriefRow[], limit = 5): HomeModel {
     .filter((row) => row.lastUpdated)
     .sort((a, b) => (b.lastUpdated ?? "").localeCompare(a.lastUpdated ?? ""))
     .slice(0, limit);
-  return { counts, areas, oldest: queue.slice(0, limit), recent, totalWaiting: queue.length };
+  return {
+    counts,
+    areas,
+    oldest: queue.slice(0, limit),
+    recent,
+    totalWaiting: queue.length,
+    next: queue[0] ?? null,
+  };
 }

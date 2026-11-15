@@ -2,6 +2,7 @@ import "server-only";
 
 import { loadAgentStore } from "@/adapters/load";
 import { notifyAgent, notifyOwner, verdictEvent } from "@/lib/agent-notify";
+import { defaultRevisitDate, parkRevisitDays } from "../../contract";
 import {
   SAVED_TOAST,
   formatIsoInZone,
@@ -34,6 +35,7 @@ export async function executeDecision(input: {
   choice: string;
   note: string;
   idempotencyKey?: string;
+  revisitAt?: string | null;
 }): Promise<DecideResult> {
   if (!isChoice(input.choice)) {
     return { ok: false, error: "Unknown choice", status: 400 };
@@ -56,7 +58,11 @@ export async function executeDecision(input: {
 
   const at = new Date();
   const iso = formatIsoInZone(at);
-  const line = formatReply(choice, input.note, at);
+  const revisitAt =
+    choice === "Park"
+      ? input.revisitAt?.trim() || defaultRevisitDate(at, parkRevisitDays())
+      : null;
+  const line = formatReply(choice, input.note, at, { revisitAt });
   const reply = prependReply(row.reply, line);
   const status = statusForChoice(choice);
   const lastUpdated = at.toISOString();
@@ -67,6 +73,7 @@ export async function executeDecision(input: {
     reply,
     status,
     lastUpdated,
+    revisitAt,
   });
   if (key && source.rememberIdempotencyKey) await source.rememberIdempotencyKey(key);
 
@@ -82,7 +89,7 @@ export async function executeDecision(input: {
     await source.addDiscussion(message);
   }
 
-  const event = verdictEvent(next, choice, input.note.trim(), iso);
+  const event = verdictEvent(next, choice, input.note.trim(), iso, { revisit_at: revisitAt });
   if (choice !== "Discuss" && next.raisedBy) {
     const agents = await loadAgentStore();
     const agent = await agents.get(next.raisedBy.id);

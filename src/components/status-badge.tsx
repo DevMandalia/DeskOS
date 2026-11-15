@@ -5,6 +5,7 @@ const TONE: Record<string, string> = {
   [STATUS.inFlight]: "badge badge-flight",
   [STATUS.parked]: "badge badge-parked",
   [STATUS.done]: "badge badge-done",
+  [STATUS.declined]: "badge badge-declined",
 };
 
 export function StatusBadge({ status }: { status: string | null }) {

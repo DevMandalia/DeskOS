@@ -107,7 +107,7 @@ try {
   await page.addInitScript(() => localStorage.removeItem("deskos-demo-v1"));
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
   await page.screenshot({ path: path.join(OUT, "gif-frames", "01-home.png") });
-  await page.getByRole("link", { name: /Start with the oldest/ }).click();
+  await page.getByRole("link", { name: /Start with the highest-stakes/ }).click();
   await page.waitForTimeout(600);
   await page.screenshot({ path: path.join(OUT, "gif-frames", "02-decision.png") });
   await page.getByRole("button", { name: "Approve", exact: true }).click();
