@@ -43,19 +43,21 @@ export default async function StylePage() {
           </div>
         </article>
         {["empty", "conversation", "focused"].map((state) => (
-          <article key={state} className="side-panel" style={{ position: "relative", minHeight: 420, padding: 16 }}>
+          <article key={state} className="side-panel chat-preview" style={{ position: "relative", minHeight: 420, padding: 16 }}>
             <div className="chat-head">
               <p className="chat-head-title">Desk agent</p>
             </div>
             {state === "empty" ? (
-              <p className="chat-empty-copy">Ask me anything about your desk.</p>
+              <div className="chat-empty" role="note">
+                <p className="chat-empty-copy">Ask me anything about your desk.</p>
+              </div>
             ) : (
               <p className="chat-bubble">The oldest waiting item is 9 days old.</p>
             )}
             <form className="chat-composer">
               <input
                 className="chat-composer-input"
-                placeholder="Ask me anything about your desk."
+                placeholder="Message…"
                 defaultValue={state === "focused" ? "Should I renew for 12 months?" : ""}
               />
               <div className="chat-composer-row">

@@ -19,4 +19,23 @@ test("demo chat panel uses the empty card, not a raw line", async ({ page }) => 
     "https://github.com/DevMandalia/DeskOS#optional-chat",
   );
   await expect(page.getByText("Chat is off in the demo.")).toHaveCount(0);
+  await expect(page.getByPlaceholder("Ask me anything about your desk.")).toHaveCount(0);
+});
+
+test("board overflow is a popover that does not stretch the card", async ({ page }) => {
+  await page.goto("/board");
+  const card = page.locator(".task").first();
+  await expect(card).toBeVisible();
+  const before = await card.boundingBox();
+  await card.hover();
+  await card.getByRole("button", { name: /More for/ }).click();
+  const menu = page.locator(".task-pop");
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "Edit" })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: /Move to/ })).toBeVisible();
+  await expect(menu.locator("select")).toHaveCount(0);
+  const after = await card.boundingBox();
+  expect(after?.height).toBe(before?.height);
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
 });

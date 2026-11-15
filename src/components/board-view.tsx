@@ -14,7 +14,8 @@ import {
   type DragStartEvent,
   type KeyboardCoordinateGetter,
 } from "@dnd-kit/core";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 
 import {
   applyPatch,
@@ -43,6 +44,7 @@ import { raisedByLabel } from "@/lib/agent-ref";
 import type { BoardColumn, ColumnKey, Task, TaskBoard, TaskPatch } from "@/lib/tasks/types";
 
 const API = withBasePath("/api/tasks");
+const SOURCE_OPEN_LABEL = "Open";
 
 type Props = {
   initial: TaskBoard | null;
@@ -570,24 +572,30 @@ function CardFace({
   today,
   overlay = false,
   metaOnly = false,
+  overflow = false,
 }: {
   task: Task;
   today: string;
   overlay?: boolean;
   metaOnly?: boolean;
+  overflow?: boolean;
 }) {
   const due = dueLabel(task.due, today);
   const meta = [task.area, raisedByLabel(task.raisedBy), task.priority].filter(Boolean);
+  const bits = [
+    ...meta,
+    due ? <span className={due.overdue ? "task-overdue" : ""}>{due.text}</span> : null,
+    overflow ? <span className="task-overflow-badge">Overflow</span> : null,
+  ].filter(Boolean);
   const metaLine =
-    meta.length || due ? (
+    bits.length > 0 ? (
       <p className="task-meta">
-        {meta.join(" · ")}
-        {due ? (
-          <>
-            {meta.length ? " · " : ""}
-            <span className={due.overdue ? "task-overdue" : ""}>{due.text}</span>
-          </>
-        ) : null}
+        {bits.map((bit, i) => (
+          <span key={i}>
+            {i > 0 ? " · " : null}
+            {bit}
+          </span>
+        ))}
       </p>
     ) : null;
   if (metaOnly) return metaLine;
@@ -627,6 +635,9 @@ function TaskCard({
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, disabled: editing || temp });
   const current = columnOf(task, columns);
   const source = task.url && task.url.startsWith("http") ? task.url : null;
+  const openEdit = () => {
+    if (!temp) setEditing(true);
+  };
 
   return (
     <li
@@ -645,64 +656,291 @@ function TaskCard({
           }}
         />
       ) : (
-        <>
-          <div className="task-grab">
-            <span
-              ref={setNodeRef}
-              className="task-grip"
-              {...listeners}
-              {...attributes}
-              aria-roledescription="draggable task"
-              aria-label={`Move ${task.title}`}
-            >
-              ⋮⋮
-            </span>
-            <div className="task-face" onClick={() => !temp && setEditing(true)}>
-              <button type="button" className="task-title-btn" disabled={temp}>
+        <div className="task-grab">
+          <span
+            ref={setNodeRef}
+            className="task-grip"
+            {...listeners}
+            {...attributes}
+            aria-roledescription="draggable task"
+            aria-label={`Move ${task.title}`}
+          >
+            ⋮⋮
+          </span>
+          <div className="task-main">
+            <div className="task-head">
+              <button type="button" className="task-title-btn" disabled={temp} onClick={openEdit}>
                 {task.title}
               </button>
-              <CardFace task={task} today={today} metaOnly />
+              <TaskOverflowMenu
+                taskId={task.id}
+                taskTitle={task.title}
+                columns={columns}
+                current={current}
+                source={source}
+                canPin={canPin}
+                focused={focused}
+                disabled={temp}
+                onEdit={openEdit}
+                onMove={(key) => onMove(task, key)}
+                onPin={onPin}
+              />
+            </div>
+            <div className="task-face" onClick={openEdit}>
+              <CardFace task={task} today={today} metaOnly overflow={overflow} />
             </div>
           </div>
-          <div className="task-actions">
-            {overflow ? <span className="task-overflow-badge">Overflow</span> : null}
-            <details className="task-menu">
-              <summary aria-label={`More for ${task.title}`}>⋯</summary>
-              <div className="task-menu-panel">
-                <button type="button" className="text-btn" disabled={temp} onClick={() => setEditing(true)}>
-                  Edit
-                </button>
-                <label className="task-move">
-                  <span className="sr-only">Move {task.title} to</span>
-                  <select
-                    value={current}
-                    disabled={temp}
-                    onChange={(e) => onMove(task, e.target.value as ColumnKey)}
-                    aria-label={`Move "${task.title}" to`}
-                  >
-                    {columns.map((c) => (
-                      <option key={c.key} value={c.key} disabled={!c.status}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {canPin && onPin ? (
-                  <button type="button" className="text-btn" disabled={temp} onClick={() => onPin(focused ? null : task.id)}>
-                    {focused ? "Unpin" : "Pin"}
-                  </button>
-                ) : null}
-                {source ? (
-                  <a className="text-btn" href={source} target="_blank" rel="noreferrer">
-                    Source
-                  </a>
-                ) : null}
-              </div>
-            </details>
-          </div>
-        </>
+        </div>
       )}
     </li>
+  );
+}
+
+function TaskOverflowMenu({
+  taskId,
+  taskTitle,
+  columns,
+  current,
+  source,
+  canPin,
+  focused,
+  disabled,
+  onEdit,
+  onMove,
+  onPin,
+}: {
+  taskId: string;
+  taskTitle: string;
+  columns: BoardColumn[];
+  current: ColumnKey;
+  source: string | null;
+  canPin: boolean;
+  focused: boolean;
+  disabled: boolean;
+  onEdit: () => void;
+  onMove: (key: ColumnKey) => void;
+  onPin?: (id: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setMoveOpen(false);
+  }, []);
+
+  const place = useCallback(() => {
+    const trigger = triggerRef.current;
+    const menu = menuRef.current;
+    if (!trigger) return;
+    const r = trigger.getBoundingClientRect();
+    const width = menu?.offsetWidth ?? 196;
+    const height = menu?.offsetHeight ?? 0;
+    let left = Math.min(Math.max(8, r.right - width), window.innerWidth - width - 8);
+    let top = r.bottom + 4;
+    if (height && top + height > window.innerHeight - 8) {
+      top = Math.max(8, r.top - height - 4);
+    }
+    setCoords({ top, left });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open, moveOpen, place]);
+
+  useEffect(() => {
+    if (!open) return;
+    menuRef.current?.querySelector<HTMLElement>("[role='menuitem']:not([disabled])")?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !moveOpen) return;
+    menuRef.current?.querySelector<HTMLElement>(".task-pop-sub [role='menuitem']:not([disabled])")?.focus();
+  }, [open, moveOpen]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      const node = event.target as Node;
+      if (triggerRef.current?.contains(node) || menuRef.current?.contains(node)) return;
+      close();
+    }
+    function onKey(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (moveOpen) {
+          setMoveOpen(false);
+          menuRef.current?.querySelector<HTMLElement>("[data-menu='move']")?.focus();
+          return;
+        }
+        close();
+        triggerRef.current?.focus();
+        return;
+      }
+      const menu = menuRef.current;
+      if (!menu) return;
+      const scope = moveOpen ? menu.querySelector<HTMLElement>(".task-pop-sub") : menu;
+      if (!scope) return;
+      const items = [...scope.querySelectorAll<HTMLElement>(":scope > [role='menuitem'], :scope > .task-pop-move > [role='menuitem']")];
+      if (items.length === 0) return;
+      const here = items.indexOf(document.activeElement as HTMLElement);
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const dir = event.key === "ArrowDown" ? 1 : -1;
+        const next = here < 0 ? 0 : (here + dir + items.length) % items.length;
+        items[next]?.focus();
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        items[0]?.focus();
+      } else if (event.key === "End") {
+        event.preventDefault();
+        items[items.length - 1]?.focus();
+      } else if (event.key === "ArrowRight" && !moveOpen && (document.activeElement as HTMLElement | null)?.dataset.menu === "move") {
+        event.preventDefault();
+        setMoveOpen(true);
+      } else if (event.key === "ArrowLeft" && moveOpen) {
+        event.preventDefault();
+        setMoveOpen(false);
+        menu.querySelector<HTMLElement>("[data-menu='move']")?.focus();
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [open, moveOpen, close]);
+
+  const menu = open
+    ? createPortal(
+        <div
+          ref={menuRef}
+          className="task-pop"
+          role="menu"
+          aria-label={`More for ${taskTitle}`}
+          style={{ top: coords.top, left: coords.left }}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className="task-pop-row"
+            disabled={disabled}
+            onClick={() => {
+              close();
+              onEdit();
+            }}
+          >
+            Edit
+          </button>
+          <div className="task-pop-move">
+            <button
+              type="button"
+              role="menuitem"
+              className="task-pop-row"
+              data-menu="move"
+              aria-haspopup="menu"
+              aria-expanded={moveOpen}
+              disabled={disabled}
+              onClick={() => setMoveOpen((value) => !value)}
+            >
+              Move to <span className="task-pop-caret" aria-hidden="true">▸</span>
+            </button>
+            {moveOpen ? (
+              <div className="task-pop-sub" role="menu" aria-label="Move to">
+                {columns.map((column) => (
+                  <button
+                    key={column.key}
+                    type="button"
+                    role="menuitem"
+                    className={`task-pop-row ${column.key === current ? "is-current" : ""}`}
+                    disabled={disabled || !column.status}
+                    aria-current={column.key === current ? "true" : undefined}
+                    onClick={() => {
+                      close();
+                      onMove(column.key);
+                    }}
+                  >
+                    {column.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {canPin && onPin ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="task-pop-row"
+              disabled={disabled}
+              onClick={() => {
+                close();
+                onPin(focused ? null : taskId);
+              }}
+            >
+              {focused ? "Unpin" : "Pin"}
+            </button>
+          ) : null}
+          {source ? (
+            <a
+              role="menuitem"
+              className="task-pop-row"
+              href={source}
+              target="_blank"
+              rel="noreferrer"
+              onClick={close}
+            >
+              {SOURCE_OPEN_LABEL}
+            </a>
+          ) : null}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <div className="task-menu">
+      <button
+        ref={triggerRef}
+        type="button"
+        className="task-menu-btn"
+        aria-label={`More for ${taskTitle}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (open) {
+            close();
+            return;
+          }
+          const r = triggerRef.current?.getBoundingClientRect();
+          if (r) {
+            const width = 196;
+            setCoords({
+              top: r.bottom + 4,
+              left: Math.min(Math.max(8, r.right - width), window.innerWidth - width - 8),
+            });
+          }
+          setMoveOpen(false);
+          setOpen(true);
+        }}
+      >
+        ⋯
+      </button>
+      {menu}
+    </div>
   );
 }
 
@@ -763,7 +1001,7 @@ function TaskEditor({
         </button>
         {source ? (
           <a className="text-btn" href={source} target="_blank" rel="noreferrer">
-            Source
+            {SOURCE_OPEN_LABEL}
           </a>
         ) : null}
       </div>

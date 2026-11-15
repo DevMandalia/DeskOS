@@ -1620,6 +1620,7 @@ html[data-theme="dark"] .signin-card {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  min-height: 0;
   padding: 24px 22px 24px;
 }
 
@@ -1645,6 +1646,7 @@ html[data-theme="dark"] .signin-card {
 }
 
 .chat-empty {
+  flex: 0 0 auto;
   border: 1px dashed var(--ds-border-hover);
   border-radius: var(--ds-radius);
   background: var(--ds-card);
@@ -1677,6 +1679,7 @@ html[data-theme="dark"] .signin-card {
 
 .chat-composer {
   margin-top: auto;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1771,6 +1774,18 @@ html[data-theme="dark"] .signin-card {
     width: min(420px, 94vw);
     transform: translateX(100%);
     border-left: 1px solid var(--ds-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .side-panel .side-scroll {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .side-nav[data-open="true"],
@@ -1862,10 +1877,14 @@ html[data-theme="dark"] .signin-card {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;
   }
 
-  .side-panel .chat {
+  .side-panel .chat,
+  .side-panel .chat-panel {
+    flex: 1 1 auto;
     min-height: 0;
+    height: 100%;
   }
 
   .drawer-toggle,
@@ -3412,9 +3431,9 @@ body {
 .task-grab {
   display: flex;
   gap: 6px;
-  padding: 10px 12px 4px 6px;
+  padding: 10px 8px 10px 6px;
   touch-action: manipulation;
-  border-radius: 10px 10px 0 0;
+  border-radius: 10px;
 }
 
 .task-grab:focus-visible {
@@ -3435,6 +3454,17 @@ body {
 
 .task:hover .task-grip {
   color: var(--ds-secondary);
+}
+
+.task-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.task-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
 }
 
 .task-face {
@@ -3474,7 +3504,9 @@ body {
 
 .task-title-btn {
   display: block;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  width: auto;
   margin: 0;
   padding: 0;
   border: 0;
@@ -3493,81 +3525,108 @@ body {
   text-underline-offset: 3px;
 }
 
-.task-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 0 10px 8px 10px;
-  font-size: 13px;
-}
-
 .task-menu {
   position: relative;
-  margin-left: auto;
+  flex: 0 0 auto;
 }
 
-.task-menu summary {
-  list-style: none;
-  cursor: pointer;
-  min-width: 32px;
-  min-height: 32px;
+.task-menu-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  margin: -4px -2px 0 0;
+  padding: 0;
+  border: 0;
   border-radius: 8px;
+  background: transparent;
   color: var(--ds-secondary);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
 }
 
-.task-menu summary::-webkit-details-marker,
-.task-menu summary::marker {
-  display: none;
-  content: none;
+.task:hover .task-menu-btn,
+.task:focus-within .task-menu-btn,
+.task-menu-btn[aria-expanded="true"],
+.task-menu-btn:focus-visible {
+  opacity: 1;
 }
 
-.task-menu summary:hover,
-.task-menu[open] summary {
+@media (hover: none) {
+  .task-menu-btn {
+    opacity: 1;
+  }
+}
+
+.task-menu-btn:hover,
+.task-menu-btn[aria-expanded="true"] {
   background: var(--hover);
   color: var(--ds-text);
 }
 
-.task-menu-panel {
-  display: grid;
-  gap: 6px;
-  margin: 0 0 8px;
-  min-width: 0;
-  padding: 8px 0 0;
+.task-pop {
+  position: fixed;
+  z-index: 80;
+  min-width: 196px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
 }
 
-.task-menu-panel .text-btn,
-.task-menu-panel a {
-  display: block;
+.task-pop-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
-  min-height: 32px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
   text-align: left;
   text-decoration: none;
+  cursor: pointer;
 }
 
-.task-menu-panel select {
-  width: 100%;
+.task-pop-row:hover,
+.task-pop-row:focus-visible {
+  background: var(--hover);
+  color: var(--text);
+  text-decoration: none;
+  outline: none;
 }
 
-.task-move select {
-  min-height: 30px;
-  padding: 0 6px;
-  border: 1px solid var(--ds-border);
-  border-radius: 6px;
-  background: var(--ds-bg);
-  color: var(--ds-text);
-  font: inherit;
-  font-size: 13px;
+.task-pop-row:disabled,
+.task-pop-row[aria-disabled="true"] {
+  color: var(--text-muted);
+  cursor: not-allowed;
 }
 
-.task-actions .text-btn {
-  min-height: 30px;
-  font-size: 13px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.task-pop-row.is-current {
+  font-weight: 600;
+}
+
+.task-pop-caret {
+  color: var(--text-2);
+}
+
+.task-pop-move {
+  position: relative;
+}
+
+.task-pop-sub {
+  display: grid;
+  gap: 2px;
+  padding: 4px 0 0 8px;
 }
 
 .task-open {
@@ -4206,6 +4265,7 @@ html[data-theme="dark"] .decision-object .verdict-next {
 
 .chat-composer {
   margin-top: auto;
+  flex-shrink: 0;
   padding: 12px;
   border-radius: var(--radius-lg);
   background: var(--surface-sunken);
@@ -4326,22 +4386,9 @@ html[data-theme="dark"] .decision-object .verdict-next {
   box-sizing: border-box;
 }
 
-.task-actions {
-  flex-wrap: nowrap;
-  min-width: 0;
-  max-width: 100%;
-  overflow: visible;
-}
-
-.task-move {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.task-move select {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+.task-pop {
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
 }
 
 .task-open {
@@ -4408,6 +4455,15 @@ html[data-theme="dark"] .decision-object .verdict-next {
     min-height: calc(100vh - 2 * var(--shell-gap));
     gap: var(--shell-gap);
     grid-template-columns: var(--nav-eff) minmax(0, 1fr) var(--chat-eff);
+  }
+
+  html[data-focus="on"] .app-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html[data-focus="on"] .side-nav,
+  html[data-focus="on"] .side-panel {
+    display: none;
   }
 
   .side-nav,
@@ -4551,6 +4607,15 @@ html[data-theme="dark"] .decision-object .verdict-next {
   grid-template-columns: 240px 64px repeat(3, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
+}
+
+.chat-preview {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-preview .chat-composer {
+  margin-top: auto;
 }
 
 .d2-style-kit {
