@@ -144,6 +144,9 @@ export async function executeDecision(input: {
     reply,
     status,
     lastUpdated,
+    // Discuss on an expired revisit stays waiting and keeps revisitState.
+    revisitAt: row.revisitAt ?? null,
+    revisitState: row.revisitState ?? null,
   });
   if (action === "Discuss") {
     await source.addDiscussion({

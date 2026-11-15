@@ -48,9 +48,11 @@ export function DecisionPanel({
   const [revisitAt, setRevisitAt] = useState(defaultParkDate ?? defaultRevisitDate());
   const expired = row.revisitState === "expired";
   const needsSplit = Boolean(row.needsSplit);
+  const undatedPark = row.status === "Parked" && !row.revisitAt && !expired;
+  const parkLabel = expired ? "Keep parked" : undatedPark ? "Set date" : "Park";
   const actions: { id: Action; label: string }[] = expired
     ? [
-        { id: "Park", label: "Keep parked" },
+        { id: "Park", label: parkLabel },
         { id: "Reopen", label: "Reopen" },
         { id: "Decline", label: "Kill" },
       ]
@@ -58,13 +60,13 @@ export function DecisionPanel({
       ? [
           { id: "Split", label: "Send back to split" },
           { id: "Decline", label: "Decline" },
-          { id: "Park", label: "Park" },
+          { id: "Park", label: parkLabel },
           { id: "Discuss", label: "Discuss" },
         ]
       : [
           { id: "Approve", label: "Approve" },
           { id: "Decline", label: "Decline" },
-          { id: "Park", label: "Park" },
+          { id: "Park", label: parkLabel },
           { id: "Discuss", label: "Discuss" },
         ];
   const [pending, setPending] = useState<Action | null>(null);
@@ -232,6 +234,7 @@ export function DecisionPanel({
   }, [toast]);
 
   const disabled = Boolean(pending);
+  const confirmingLabel = actions.find((choice) => choice.id === confirming)?.label ?? confirming;
 
   return (
     <section className="decision-panel">
@@ -258,6 +261,17 @@ export function DecisionPanel({
           </button>
         </p>
       )}
+      {undatedPark ? (
+        <label className="park-revisit">
+          Set date
+          <input
+            type="date"
+            value={revisitAt}
+            onChange={(event) => setRevisitAt(event.target.value)}
+            disabled={disabled}
+          />
+        </label>
+      ) : null}
       <div className="decide-dock">
         <div className="action-bar">
           {actions.map((choice) => (
@@ -338,7 +352,7 @@ export function DecisionPanel({
             onClick={(event) => event.stopPropagation()}
           >
             <p className="kicker">{isStaticDemo() ? "Demo only" : "Confirm"}</p>
-            <h2 id="confirm-title">{confirming} this?</h2>
+            <h2 id="confirm-title">{confirmingLabel} this?</h2>
             <p>
               {isStaticDemo()
                 ? "This stays in your browser. Nothing is sent anywhere."
@@ -377,7 +391,7 @@ export function DecisionPanel({
                 onClick={() => void submit(confirming)}
                 disabled={disabled}
               >
-                Confirm {confirming}
+                Confirm {confirmingLabel}
               </button>
               <button
                 type="button"

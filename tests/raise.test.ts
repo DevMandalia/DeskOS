@@ -160,6 +160,12 @@ describe("park sunset", () => {
     expect(parkRevisitDays({ PARK_REVISIT_DAYS: "21" })).toBe(21);
   });
 
+  it("falls back to 14 when PARK_REVISIT_DAYS is invalid", () => {
+    expect(parkRevisitDays({ PARK_REVISIT_DAYS: "nope" })).toBe(14);
+    expect(parkRevisitDays({ PARK_REVISIT_DAYS: "0" })).toBe(14);
+    expect(parkRevisitDays({ PARK_REVISIT_DAYS: "-3" })).toBe(14);
+  });
+
   it("does not reclassify parked rows without a revisit date", () => {
     expect(
       expireParkIfNeeded({ status: "Parked", revisitAt: null }, "2026-11-15", "Waiting on you", "Parked"),

@@ -62,6 +62,15 @@ export function DecisionBrief({ row, essentialsOnly = false }: { row: BriefRow; 
   const def = row.defaultIfNoAnswer;
   const showDefault = Boolean(def && row.deadline);
   if (essentialsOnly) {
+    if (row.revisitState === "expired") {
+      return (
+        <div className="decision-brief decision-brief-lite">
+          <p className="decision-brief-note">
+            Revisit — date passed{row.revisitAt ? ` (${row.revisitAt})` : ""}.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="decision-brief decision-brief-lite">
         <DecisionTags row={row} />

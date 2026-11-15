@@ -110,7 +110,7 @@ export default async function HomePage({
               {raisedByLabel(next.raisedBy) ? ` · ${raisedByLabel(next.raisedBy)}` : ""} · {cardAge(next, now)}
             </p>
             <p className="verdict-need">{next.decisionNeeded ?? "No decision text on this row."}</p>
-            <DecisionBrief row={next} essentialsOnly={next.revisitState !== "expired"} />
+            <DecisionBrief row={next} essentialsOnly />
             <DecisionPanel
               row={next}
               prevHref={null}

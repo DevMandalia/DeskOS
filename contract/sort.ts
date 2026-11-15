@@ -126,9 +126,13 @@ export function compareParked(
 export const DEFAULT_PARK_REVISIT_DAYS = 14;
 
 export function parkRevisitDays(env: Record<string, string | undefined> = process.env): number {
-  const raw = Number.parseInt((env.PARK_REVISIT_DAYS ?? "").trim(), 10);
-  if (Number.isFinite(raw) && raw >= 1 && raw < 3650) return raw;
-  return DEFAULT_PARK_REVISIT_DAYS;
+  const text = (env.PARK_REVISIT_DAYS ?? "").trim();
+  if (!text) return DEFAULT_PARK_REVISIT_DAYS;
+  // Integer ≥ 1 only. Not a number, zero, or negative → 14.
+  if (!/^[1-9]\d*$/.test(text)) return DEFAULT_PARK_REVISIT_DAYS;
+  const raw = Number(text);
+  if (!Number.isInteger(raw) || raw < 1 || raw >= 3650) return DEFAULT_PARK_REVISIT_DAYS;
+  return raw;
 }
 
 export function defaultRevisitDate(
