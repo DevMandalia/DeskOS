@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { IBM_Plex_Mono, Newsreader, Source_Sans_3 } from "next/font/google";
 
+import { ThemeProvider } from "@/components/theme-toggle";
 import { LAYOUT_BOOTSTRAP_SCRIPT } from "@/lib/layout-prefs";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 
@@ -55,7 +56,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           dangerouslySetInnerHTML={{ __html: LAYOUT_BOOTSTRAP_SCRIPT }}
         />
       </head>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

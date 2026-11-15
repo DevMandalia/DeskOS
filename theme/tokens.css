@@ -1,0 +1,155 @@
+/* Shared desk theme. Semantic tokens; current colors as the initial values. */
+
+:root,
+html[data-theme="light"] {
+  --bg: #f6f3ec;
+  --surface: #fffdf8;
+  --surface-2: #efeadf;
+  --text: #1d1b18;
+  --text-muted: #625d55;
+  --border: #e3ddd0;
+  --accent: #1f5f5b;
+  --accent-contrast: #fffdf8;
+  --danger: #9e4724;
+  --warning: #9e4724;
+  --success: #1f5f5b;
+  --focus-ring: #1f5f5b;
+
+  --mint: #e2efec;
+  --peach: #f6e6dc;
+  --border-hover: #d4cec0;
+  --accent-fill: #1f5f5b;
+  --on-fill-muted: #e2efec;
+  --wait-bg: #fffaf6;
+  --badge-wait-border: #ead3c6;
+  --badge-flight-border: #cde0dc;
+  --scrim: rgba(29, 27, 24, 0.28);
+  --rail: #f1ede4;
+
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(29, 27, 24, 0.04), 0 12px 32px rgba(29, 27, 24, 0.06);
+  --shadow-md: 0 12px 32px rgba(29, 27, 24, 0.12);
+  --shadow-lg: 0 16px 48px rgba(29, 27, 24, 0.18);
+  --shadow-overlay: 0 10px 28px rgba(29, 27, 24, 0.18);
+  --shadow-dark: 0 12px 32px rgba(0, 0, 0, 0.35);
+
+  --font-family-sans: var(--font-source-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-family-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-md: 16px;
+  --text-lg: 19px;
+  --text-xl: 26px;
+  --text-2xl: 38px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --duration-fast: 120ms;
+  --duration: 180ms;
+  --duration-slow: 240ms;
+  --motion-theme: var(--duration-fast);
+
+  --ds-bg: var(--bg);
+  --ds-card: var(--surface);
+  --ds-beige: var(--surface-2);
+  --ds-mint: var(--mint);
+  --ds-peach: var(--peach);
+  --ds-text: var(--text);
+  --ds-secondary: var(--text-muted);
+  --ds-teal: var(--accent);
+  --ds-teal-fill: var(--accent-fill);
+  --ds-orange: var(--danger);
+  --ds-border: var(--border);
+  --ds-border-hover: var(--border-hover);
+  --ds-on-fill: var(--accent-contrast);
+  --ds-on-fill-muted: var(--on-fill-muted);
+  --ds-wait-bg: var(--wait-bg);
+  --ds-badge-wait-border: var(--badge-wait-border);
+  --ds-badge-flight-border: var(--badge-flight-border);
+  --ds-scrim: var(--scrim);
+  --ds-rail: var(--rail);
+  --ds-radius: var(--radius);
+
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --bg: #16140f;
+  --surface: #1e1b16;
+  --surface-2: #2a261f;
+  --text: #f6f3ec;
+  --text-muted: #c9c2b7;
+  --border: #4a4338;
+  --accent: #8ec9c3;
+  --accent-contrast: #fffdf8;
+  --danger: #e09262;
+  --warning: #e09262;
+  --success: #8ec9c3;
+  --focus-ring: #8ec9c3;
+
+  --mint: #1c2e2b;
+  --peach: #2f241c;
+  --border-hover: #6a6154;
+  --accent-fill: #1f5f5b;
+  --on-fill-muted: #e2efec;
+  --wait-bg: #2f241c;
+  --badge-wait-border: #5a4336;
+  --badge-flight-border: #2f4a46;
+  --scrim: rgba(10, 9, 7, 0.55);
+  --rail: #1a1813;
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    --duration-fast: 0ms;
+    --duration: 0ms;
+    --duration-slow: 0ms;
+    --motion-theme: 0ms;
+  }
+}
+
+html {
+  transition:
+    background-color var(--motion-theme) ease,
+    color var(--motion-theme) ease;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-foreground: var(--text);
+  --color-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-focus-ring: var(--focus-ring);
+  --color-card: var(--surface);
+  --color-beige: var(--surface-2);
+  --color-mint: var(--mint);
+  --color-peach: var(--peach);
+  --color-ink: var(--text);
+  --color-teal: var(--accent);
+  --color-orange: var(--danger);
+  --color-line: var(--border);
+  --font-sans: var(--font-source-sans);
+  --font-serif: var(--font-newsreader);
+  --font-mono: var(--font-ibm-plex-mono);
+}

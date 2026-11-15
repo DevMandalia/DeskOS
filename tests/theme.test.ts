@@ -1,6 +1,17 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { contrastRatio, DARK, LIGHT, THEME_BOOTSTRAP_SCRIPT } from "../src/lib/theme";
+import {
+  contrastRatio,
+  DARK,
+  LIGHT,
+  parsePreference,
+  readStoredPreference,
+  resolveTheme,
+  THEME_BOOTSTRAP_SCRIPT,
+  THEME_STORAGE_KEY,
+} from "../src/lib/theme";
 
 describe("DeskOS contrast (WCAG AA)", () => {
   it("keeps light text, chips, and buttons at or above 4.5:1", () => {
@@ -22,9 +33,68 @@ describe("DeskOS contrast (WCAG AA)", () => {
     expect(contrastRatio(DARK.secondary, DARK.card)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("boots from localStorage before paint", () => {
+  it("boots from localStorage before paint, including System", () => {
     expect(THEME_BOOTSTRAP_SCRIPT).toContain("localStorage");
     expect(THEME_BOOTSTRAP_SCRIPT).toContain("prefers-color-scheme");
     expect(THEME_BOOTSTRAP_SCRIPT).toContain("data-theme");
+    expect(THEME_BOOTSTRAP_SCRIPT).toContain("data-theme-pref");
+    expect(THEME_BOOTSTRAP_SCRIPT).toContain(THEME_STORAGE_KEY);
+    expect(THEME_BOOTSTRAP_SCRIPT).toContain("system");
+    expect(THEME_BOOTSTRAP_SCRIPT).toContain(LIGHT.bg);
+    expect(THEME_BOOTSTRAP_SCRIPT).toContain(DARK.bg);
+  });
+});
+
+describe("theme preference", () => {
+  it("defaults to system and live-resolves prefers-color-scheme", () => {
+    expect(parsePreference(null)).toBe("system");
+    expect(parsePreference("nope")).toBe("system");
+    expect(resolveTheme("system", false)).toBe("light");
+    expect(resolveTheme("system", true)).toBe("dark");
+    expect(resolveTheme("light", true)).toBe("light");
+    expect(resolveTheme("dark", false)).toBe("dark");
+  });
+
+  it("reads desk-theme, then legacy keys", () => {
+    const store: Record<string, string> = {};
+    const getItem = (key: string) => store[key] ?? null;
+    expect(readStoredPreference(getItem)).toBe("system");
+    store["deskos-theme"] = "dark";
+    expect(readStoredPreference(getItem)).toBe("dark");
+    store["desk-theme"] = "system";
+    expect(readStoredPreference(getItem)).toBe("system");
+    store["desk-theme"] = "light";
+    expect(readStoredPreference(getItem)).toBe("light");
+  });
+});
+
+describe("theme tokens", () => {
+  it("declares the semantic light/dark variables", () => {
+    const css = readFileSync(
+      path.resolve(__dirname, "../theme/tokens.css"),
+      "utf8",
+    );
+    for (const name of [
+      "--bg",
+      "--surface",
+      "--surface-2",
+      "--text",
+      "--text-muted",
+      "--border",
+      "--accent",
+      "--accent-contrast",
+      "--danger",
+      "--warning",
+      "--success",
+      "--focus-ring",
+      "--duration-fast",
+      "--motion-theme",
+      "prefers-reduced-motion",
+      "@theme inline",
+    ]) {
+      expect(css).toContain(name);
+    }
+    expect(css).toContain(LIGHT.bg);
+    expect(css).toContain(DARK.bg);
   });
 });

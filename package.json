@@ -14,7 +14,9 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "theme:sync": "bash scripts/sync-theme.sh",
+    "theme:check": "bash scripts/sync-theme.sh --check",
+    "test": "vitest run && bash scripts/sync-theme.sh --check",
     "mcp:pack": "node scripts/pack-mcp.mjs",
     "mcp:test": "node scripts/mcp-tool-list.mjs",
     "capture:demo": "node scripts/capture-demo.mjs"

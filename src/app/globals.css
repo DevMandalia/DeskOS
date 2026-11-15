@@ -1,69 +1,5 @@
 @import "tailwindcss";
-
-:root,
-html[data-theme="light"] {
-  --ds-bg: #f6f3ec;
-  --ds-card: #fffdf8;
-  --ds-beige: #efeadf;
-  --ds-mint: #e2efec;
-  --ds-peach: #f6e6dc;
-  --ds-text: #1d1b18;
-  --ds-secondary: #625d55;
-  --ds-teal: #1f5f5b;
-  --ds-teal-fill: #1f5f5b;
-  /* 6.1:1 on card #fffdf8, 5.6:1 on page #f6f3ec, 5.1:1 on peach (was #b4522b: 4.9 / 4.5 / 4.1). */
-  --ds-orange: #9e4724;
-  --ds-border: #e3ddd0;
-  --ds-border-hover: #d4cec0;
-  --ds-on-fill: #fffdf8;
-  --ds-on-fill-muted: #e2efec;
-  --ds-wait-bg: #fffaf6;
-  --ds-badge-wait-border: #ead3c6;
-  --ds-badge-flight-border: #cde0dc;
-  --ds-scrim: rgba(29, 27, 24, 0.28);
-  --ds-rail: #f1ede4;
-  --ds-radius: 10px;
-  color-scheme: light;
-}
-
-html[data-theme="dark"] {
-  --ds-bg: #16140f;
-  --ds-card: #1e1b16;
-  --ds-beige: #2a261f;
-  --ds-mint: #1c2e2b;
-  --ds-peach: #2f241c;
-  --ds-text: #f6f3ec;
-  --ds-secondary: #c9c2b7;
-  --ds-teal: #8ec9c3;
-  --ds-teal-fill: #1f5f5b;
-  --ds-orange: #e09262;
-  --ds-border: #4a4338;
-  --ds-border-hover: #6a6154;
-  --ds-on-fill: #fffdf8;
-  --ds-on-fill-muted: #e2efec;
-  --ds-wait-bg: #2f241c;
-  --ds-badge-wait-border: #5a4336;
-  --ds-badge-flight-border: #2f4a46;
-  --ds-scrim: rgba(10, 9, 7, 0.55);
-  --ds-rail: #1a1813;
-  color-scheme: dark;
-}
-
-@theme inline {
-  --color-bg: var(--ds-bg);
-  --color-card: var(--ds-card);
-  --color-beige: var(--ds-beige);
-  --color-mint: var(--ds-mint);
-  --color-peach: var(--ds-peach);
-  --color-ink: var(--ds-text);
-  --color-muted: var(--ds-secondary);
-  --color-teal: var(--ds-teal);
-  --color-orange: var(--ds-orange);
-  --color-line: var(--ds-border);
-  --font-sans: var(--font-source-sans);
-  --font-serif: var(--font-newsreader);
-  --font-mono: var(--font-ibm-plex-mono);
-}
+@import "../../theme/tokens.css";
 
 * {
   box-sizing: border-box;
@@ -72,8 +8,8 @@ html[data-theme="dark"] {
 html,
 body {
   min-height: 100%;
-  background: var(--ds-bg);
-  color: var(--ds-text);
+  background: var(--bg);
+  color: var(--text);
 }
 
 body {
@@ -190,7 +126,7 @@ a:hover {
   .account-caret {
     font-size: 11px;
     color: var(--ds-secondary);
-    transition: transform 120ms ease;
+    transition: transform var(--duration-fast) ease;
   }
 
   .account[data-open="true"] .account-caret {
@@ -212,7 +148,7 @@ a:hover {
     background: var(--ds-card);
     border: 1px solid var(--ds-border);
     border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(29, 27, 24, 0.12);
+    box-shadow: var(--shadow-md);
   }
 
   .account[data-open="true"] .account-panel {
@@ -470,7 +406,7 @@ a:hover {
   color: var(--ds-secondary);
   font-size: 12px;
   margin-right: 2px;
-  transition: transform 120ms ease;
+  transition: transform var(--duration-fast) ease;
 }
 
 .area-fold[open] > summary::before {
@@ -1133,11 +1069,11 @@ a:hover {
   border-radius: 16px;
   padding: 48px 44px 44px;
   text-align: center;
-  box-shadow: 0 1px 2px rgba(29, 27, 24, 0.04), 0 12px 32px rgba(29, 27, 24, 0.06);
+  box-shadow: var(--shadow-sm);
 }
 
 html[data-theme="dark"] .signin-card {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-dark);
 }
 
 .signin-kicker {
@@ -1582,10 +1518,10 @@ html[data-theme="dark"] .signin-card {
     z-index: 70;
     overflow-y: auto;
     visibility: hidden;
-    box-shadow: 0 16px 48px rgba(29, 27, 24, 0.18);
+    box-shadow: var(--shadow-lg);
     transition:
-      transform 180ms ease,
-      visibility 180ms;
+      transform var(--duration) ease,
+      visibility var(--duration);
   }
 
   .side-nav {
@@ -1820,7 +1756,7 @@ html[data-theme="dark"] .signin-card {
     left: 4px;
     width: 1px;
     background: transparent;
-    transition: background 120ms ease;
+    transition: background var(--duration-fast) ease;
   }
 
   .resize-handle:hover::after,
@@ -2014,7 +1950,7 @@ body {
   content: "▸";
   margin-left: auto;
   color: var(--ds-secondary);
-  transition: transform 120ms ease;
+  transition: transform var(--duration-fast) ease;
 }
 
 .side-areas[open] > .side-summary::after {
@@ -3116,7 +3052,7 @@ body {
   border: 1px solid var(--ds-border);
   border-radius: 12px;
   background: var(--ds-rail);
-  transition: border-color 120ms ease, background 120ms ease;
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
 }
 
 .lane-over {
@@ -3233,7 +3169,7 @@ body {
   border: 1px solid var(--ds-teal);
   border-radius: 10px;
   background: var(--ds-card);
-  box-shadow: 0 10px 28px rgba(29, 27, 24, 0.18);
+  box-shadow: var(--shadow-overlay);
   cursor: grabbing;
 }
 
