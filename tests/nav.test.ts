@@ -82,7 +82,7 @@ describe("scopeRows", () => {
 });
 
 describe("buildNav", () => {
-  it("counts views and waiting-per-area, and lists the queue oldest first", () => {
+  it("counts views and waiting-per-area, and lists the waiting queue in sort order", () => {
     const nav = buildNav(rows, { area: null, view: "waiting", includeDone: false });
     expect(nav.views.map((v) => [v.label, v.count, v.active, v.href])).toEqual([
       ["Waiting on you", 2, true, "/waiting"],
@@ -127,7 +127,7 @@ describe("view routes", () => {
 });
 
 describe("buildHome", () => {
-  it("counts by status and area, lists the oldest waiting and the most recent", () => {
+  it("counts by status and area, lists the highest-stakes waiting and the most recent", () => {
     const home = buildHome(rows, 1);
     expect(home.counts.map((c) => [c.label, c.count, c.href])).toEqual([
       ["Waiting on you", 2, "/waiting"],

@@ -85,11 +85,12 @@ describe("waitingQueue / deskOrder / counts", () => {
     expect(waitingQueue(rows, "age").map((r) => r.id)).toEqual(["old", "new", "nodate"]);
   });
 
-  it("queues waiting rows by cost of delay when sort is stakes", () => {
+  it("defaults waiting rows to stakes and can opt into age", () => {
     const mixed = [
       row({ id: "low", item: "Low", lastUpdated: "2026-11-01", costOfDelay: "low" }),
       row({ id: "high", item: "High", lastUpdated: "2026-11-12", costOfDelay: "high" }),
     ];
+    expect(waitingQueue(mixed).map((r) => r.id)).toEqual(["high", "low"]);
     expect(waitingQueue(mixed, "stakes").map((r) => r.id)).toEqual(["high", "low"]);
     expect(waitingQueue(mixed, "age").map((r) => r.id)).toEqual(["low", "high"]);
   });

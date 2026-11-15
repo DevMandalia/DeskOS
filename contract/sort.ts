@@ -31,15 +31,15 @@ export function parseQueueSort(value: string | null | undefined): QueueSort | nu
   return null;
 }
 
-/**
- * Spec 03 default is stakes. Private desk passes fallback "age" until confirmed.
- */
+/** Waiting queue default on both desks. `QUEUE_SORT=age` opts into oldest first. */
+export const DEFAULT_QUEUE_SORT: QueueSort = "stakes";
+
 export function resolveQueueSort(
   env: {
     QUEUE_SORT?: string;
     NEXT_PUBLIC_QUEUE_SORT?: string;
   },
-  fallback: QueueSort = "stakes",
+  fallback: QueueSort = DEFAULT_QUEUE_SORT,
 ): QueueSort {
   return parseQueueSort(env.QUEUE_SORT) ?? parseQueueSort(env.NEXT_PUBLIC_QUEUE_SORT) ?? fallback;
 }

@@ -10,14 +10,12 @@ import { deskTimezone } from "@/lib/env";
 import { STATUS, compareStatus } from "@/lib/decide";
 import type { BriefRow } from "@/lib/types";
 
+/** Waiting queue. Default is stakes; `QUEUE_SORT=age` is oldest first. */
 export function queueSort(): QueueSort {
-  return resolveQueueSort(
-    {
-      QUEUE_SORT: process.env.QUEUE_SORT,
-      NEXT_PUBLIC_QUEUE_SORT: process.env.NEXT_PUBLIC_QUEUE_SORT,
-    },
-    "stakes",
-  );
+  return resolveQueueSort({
+    QUEUE_SORT: process.env.QUEUE_SORT,
+    NEXT_PUBLIC_QUEUE_SORT: process.env.NEXT_PUBLIC_QUEUE_SORT,
+  });
 }
 
 export function queueToday(now = new Date()): string {

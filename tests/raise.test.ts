@@ -7,6 +7,7 @@ import {
   expireParkIfNeeded,
   parkRevisitDays,
   parseBriefJson,
+  DEFAULT_QUEUE_SORT,
   parseQueueSort,
   parseRaiseBrief,
   resolveQueueSort,
@@ -136,9 +137,10 @@ describe("assessSplit", () => {
 
 describe("QUEUE_SORT", () => {
   it("defaults to stakes unless QUEUE_SORT is set", () => {
+    expect(DEFAULT_QUEUE_SORT).toBe("stakes");
     expect(resolveQueueSort({})).toBe("stakes");
+    expect(resolveQueueSort({ QUEUE_SORT: "age" })).toBe("age");
     expect(resolveQueueSort({}, "age")).toBe("age");
-    expect(resolveQueueSort({ QUEUE_SORT: "age" }, "stakes")).toBe("age");
   });
 
   it("GET ?sort= is opt-in; omitted keeps store order", () => {

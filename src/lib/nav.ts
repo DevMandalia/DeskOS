@@ -123,7 +123,7 @@ export type NavModel = {
 /**
  * Left-nav data. View counts cover the selected area; area counts are items
  * waiting on you (same as the desk's area filter); the queue is the
- * waiting list in the selected area, oldest first.
+ * waiting list in the selected area, highest-stakes first (`QUEUE_SORT=age` for oldest first).
  */
 export function buildNav(rows: BriefRow[], scope: DeskScope): NavModel {
   const inArea = scopeRows(rows, { area: scope.area, view: "all", includeDone: true });
@@ -160,8 +160,8 @@ export type HomeModel = {
 };
 
 /**
- * Home: counts by status and area, the oldest waiting items, and what changed
- * most recently (by Last updated, any status).
+ * Home: counts by status and area, the highest-stakes waiting items, and what
+ * changed most recently (by Last updated, any status).
  */
 export function buildHome(rows: BriefRow[], limit = 4): HomeModel {
   const counts = (["waiting", "flight", "parked", "done"] as View[]).map((view) => ({
