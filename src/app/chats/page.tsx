@@ -37,7 +37,7 @@ export default async function ChatsPage({ searchParams }: { searchParams: Promis
       <div className="desk">
         <header className="desk-head">
           <h1>Chats</h1>
-          <p className="desk-sub">Pointers only — URL, app, next step, come-back date. No transcripts.</p>
+          <p className="desk-sub">URL, next step, date. No transcripts.</p>
         </header>
         <ChatCapture initialUrl={initialUrl} defaultComeBack={defaultComeBackBy(today, days)} bookmarkletHref={pasteBase} />
         <ChatLane groups={groups} extra={chats.length - open.length} snoozeDate={defaultComeBackBy(today, days)} />

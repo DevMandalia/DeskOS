@@ -6,7 +6,7 @@ export function ForbiddenScreen() {
       <p className="kicker">DeskOS · private</p>
       <h1>403</h1>
       <p className="lede">
-        That account can&apos;t open this desk. Only the owner&apos;s account can sign in.
+        Owner account only.
       </p>
       <p>
         <Link href="/signin?error=AccessDenied">Use a different account</Link>

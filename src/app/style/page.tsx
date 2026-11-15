@@ -9,7 +9,7 @@ export default async function StylePage() {
   return (
     <main className="d2-style app-main">
       <h1 className="home-hello">
-        Components. <span className="home-hello-muted">Every state, light mode.</span>
+        Components.
       </h1>
 
       <section className="d2-style-grid" aria-label="Shell pieces">
@@ -46,38 +46,21 @@ export default async function StylePage() {
           <article key={state} className="side-panel" style={{ position: "relative", minHeight: 420, padding: 16 }}>
             <div className="chat-head">
               <p className="chat-head-title">Desk agent</p>
-              <span className="chat-live">
-                <span className="live-dot" aria-hidden="true" />
-                Live
-              </span>
             </div>
             {state === "empty" ? (
-              <>
-                <p className="chat-empty-copy">I read the live desk. Only your buttons change anything.</p>
-                <div className="chat-chips">
-                  <button type="button" className="chat-chip">
-                    What&apos;s blocked on the Board?
-                  </button>
-                  <button type="button" className="chat-chip">
-                    Summarize today&apos;s decisions
-                  </button>
-                  <button type="button" className="chat-chip">
-                    What changed overnight?
-                  </button>
-                </div>
-              </>
+              <p className="chat-empty-copy">Ask me anything about your desk.</p>
             ) : (
-              <p className="chat-bubble">Morning. The oldest decision has waited 9 days.</p>
+              <p className="chat-bubble">The oldest waiting item is 9 days old.</p>
             )}
             <form className="chat-composer">
               <input
                 className="chat-composer-input"
-                placeholder="Ask about a decision"
+                placeholder="Ask me anything about your desk."
                 defaultValue={state === "focused" ? "Should I renew for 12 months?" : ""}
               />
               <div className="chat-composer-row">
-                <button type="button" className="chat-ask-person">
-                  Ask a person
+                <button type="button" className="chat-send">
+                  Send
                 </button>
               </div>
             </form>

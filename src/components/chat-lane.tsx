@@ -118,7 +118,7 @@ export function ChatLane({
           </ul>
         </section>
       ))}
-      {extra > 0 ? <p className="desk-sub">{extra} more closed or converted — hidden on the default lane.</p> : null}
+      {extra > 0 ? <p className="desk-sub">{extra} closed or converted.</p> : null}
     </div>
   );
 }

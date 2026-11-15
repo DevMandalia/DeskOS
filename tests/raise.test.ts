@@ -153,8 +153,8 @@ describe("QUEUE_SORT", () => {
     expect(parseQueueSort("nope")).toBeNull();
   });
 
-  it("keeps the Home queue button at Start with the highest-stakes", () => {
-    expect(startCtaLabel()).toBe("Start with the highest-stakes");
+  it("keeps the Home queue button at Start", () => {
+    expect(startCtaLabel()).toBe("Start");
   });
 
   it("writes the waiting header as highest-stakes, not oldest first", () => {

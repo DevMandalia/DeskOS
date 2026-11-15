@@ -143,7 +143,7 @@ export default async function ViewPage({
             showStatus={scope.view === "all"}
             emptyText={
               scope.view === "waiting"
-                ? `Nothing is waiting on you${where}.`
+                ? `Nothing waiting${where}.`
                 : `Nothing ${label.toLowerCase()}${where}.`
             }
           />

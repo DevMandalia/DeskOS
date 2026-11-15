@@ -1,7 +1,8 @@
 "use client";
 
+import { FocusToggle } from "@/components/focus-toggle";
 import { ResizeHandle } from "@/components/resize-handle";
-import { setPane, useDocked, usePanePrefs } from "@/components/pane-prefs";
+import { setPane, toggleFocusMode, useDocked, usePanePrefs } from "@/components/pane-prefs";
 import {
   createContext,
   useCallback,
@@ -59,6 +60,18 @@ export function AppFrame({
   const close = useCallback(() => setOpen(null), []);
   const toggle = useCallback((drawer: Drawer) => {
     setOpen((current) => (current === drawer ? null : drawer));
+  }, []);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "\\" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const el = event.target as HTMLElement | null;
+      if (el?.closest("input, textarea, select, [contenteditable='true']")) return;
+      event.preventDefault();
+      toggleFocusMode();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   // A drawer left open on a phone means nothing once the panes dock.
@@ -140,7 +153,10 @@ export function AppFrame({
             </div>
             <ResizeHandle pane="nav" width={prefs.nav.width} controls={DRAWER_IDS.nav} label="Resize menu" />
           </aside>
-          <main className="app-main">{children}</main>
+          <main className="app-main">
+            <FocusToggle exit />
+            {children}
+          </main>
           <aside
             id={DRAWER_IDS.chat}
             className="side-panel"
@@ -150,7 +166,7 @@ export function AppFrame({
             <ResizeHandle pane="chat" width={prefs.chat.width} controls={DRAWER_IDS.chat} label="Resize chat" />
             <div className="side-scroll side-full">
               <div className="drawer-head">
-                <span className="kicker muted">Agent chat</span>
+                <span className="kicker muted">Agent</span>
                 <button ref={chatClose} type="button" className="drawer-close" onClick={close}>
                   Close<span className="sr-only"> chat panel</span>
                 </button>
@@ -195,10 +211,10 @@ export function AppFrame({
           }}
         >
           <label className="sr-only" htmlFor="phone-ask-input">
-            Ask the Desk agent
+            Ask
           </label>
-          <input id="phone-ask-input" placeholder="Ask the Desk agent" />
-          <button type="submit">Ask</button>
+          <input id="phone-ask-input" placeholder="Ask about your desk" />
+          <button type="submit">Send</button>
         </form>
       </div>
     </FrameContext.Provider>

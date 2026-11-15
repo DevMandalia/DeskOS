@@ -45,7 +45,7 @@ export function resolveQueueSort(
 }
 
 /** Home queue button. Exact copy; independent of QUEUE_SORT. */
-export const START_QUEUE_CTA = "Start with the highest-stakes";
+export const START_QUEUE_CTA = "Start";
 
 export function startCtaLabel(): string {
   return START_QUEUE_CTA;

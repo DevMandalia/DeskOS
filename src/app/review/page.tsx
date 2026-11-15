@@ -83,7 +83,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
         <header className="desk-head">
           <h1>{bankruptcy && offset === 0 ? "Bankruptcy pass" : "Weekly review"}</h1>
           <p className="desk-sub">
-            {items.length === 0 ? "Nothing to review." : `${page.length} of ${items.length} remaining this pass. Nothing is deleted.`}
+            {items.length === 0 ? "Nothing to review." : `${page.length} of ${items.length}. Nothing deleted.`}
           </p>
         </header>
         <ReviewList items={page} />

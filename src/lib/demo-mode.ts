@@ -7,7 +7,7 @@ export function isStaticDemo(): boolean {
 export const DEMO_CHAT_README_HREF = "https://github.com/DevMandalia/DeskOS#optional-chat";
 
 export function demoBanner(): string {
-  return "Demo — fake Acme sample data. Nothing is sent anywhere.";
+  return "Demo. Sample data, nothing sent.";
 }
 
 /** Agent API, chat, and webhooks are off in demo. */

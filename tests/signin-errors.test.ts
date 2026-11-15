@@ -10,12 +10,12 @@ import {
 
 describe("signInErrorMessage", () => {
   it("uses the approved subtitle", () => {
-    expect(SIGNIN_SUBTITLE).toBe("Private desk. Only the owner's account can sign in.");
+    expect(SIGNIN_SUBTITLE).toBe("Owner account only.");
   });
 
   it("explains a wrong account", () => {
     expect(signInErrorMessage("AccessDenied")).toBe(WRONG_ACCOUNT_MESSAGE);
-    expect(WRONG_ACCOUNT_MESSAGE).toContain("the owner email");
+    expect(WRONG_ACCOUNT_MESSAGE).toContain("the owner");
     expect(isWrongAccount(["AccessDenied"])).toBe(true);
   });
 

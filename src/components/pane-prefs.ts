@@ -6,8 +6,10 @@ import {
   CHAT_PANE,
   clampWidth,
   DOCK_MIN_WIDTH,
+  FOCUS_KEY,
   NAV_PANE,
   parseCollapsed,
+  parseFocus,
   parseWidth,
   type PaneSpec,
 } from "@/lib/layout-prefs";
@@ -48,6 +50,37 @@ function apply(spec: PaneSpec, prefs: PanePrefs) {
   root.setAttribute(spec.attr, prefs.collapsed ? "collapsed" : "open");
 }
 
+function applyFocus(on: boolean) {
+  document.documentElement.setAttribute("data-focus", on ? "on" : "off");
+}
+
+let focusOn = false;
+try {
+  focusOn = parseFocus(localStorage.getItem(FOCUS_KEY));
+} catch {
+  focusOn = false;
+}
+
+export function setFocusMode(on: boolean) {
+  focusOn = on;
+  applyFocus(on);
+  try {
+    localStorage.setItem(FOCUS_KEY, on ? "1" : "0");
+  } catch {
+    /* private mode */
+  }
+  for (const l of listeners) l();
+}
+
+export function toggleFocusMode() {
+  try {
+    focusOn = parseFocus(localStorage.getItem(FOCUS_KEY));
+  } catch {
+    /* keep */
+  }
+  setFocusMode(!focusOn);
+}
+
 /** Update a pane; applies to <html> right away. `persist: false` while dragging. */
 export function setPane(pane: Pane, patch: Partial<PanePrefs>, persist = true) {
   const spec = SPECS[pane];
@@ -78,6 +111,14 @@ function subscribe(listener: () => void) {
     const prefs = snapshot();
     apply(NAV_PANE, prefs.nav);
     apply(CHAT_PANE, prefs.chat);
+    if (event.key === FOCUS_KEY || event.key === null) {
+      try {
+        focusOn = parseFocus(localStorage.getItem(FOCUS_KEY));
+      } catch {
+        focusOn = false;
+      }
+      applyFocus(focusOn);
+    }
     listener();
   };
   window.addEventListener("storage", onStorage);
@@ -89,6 +130,14 @@ function subscribe(listener: () => void) {
 
 export function usePanePrefs(): Prefs {
   return useSyncExternalStore(subscribe, snapshot, () => SERVER);
+}
+
+export function useFocusMode(): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    () => focusOn,
+    () => false,
+  );
 }
 
 export function paneSpec(pane: Pane): PaneSpec {

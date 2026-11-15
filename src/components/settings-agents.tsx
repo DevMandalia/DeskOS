@@ -86,7 +86,7 @@ export function SettingsAgents({ initial }: { initial: AgentPublic[] }) {
           </label>
         ) : null}
         <label>
-          Per-agent webhook URL (optional)
+          Webhook URL (optional)
           <input
             value={webhookUrl}
             onChange={(e) => setWebhookUrl(e.target.value)}
@@ -100,7 +100,7 @@ export function SettingsAgents({ initial }: { initial: AgentPublic[] }) {
       {error ? <p className="signin-error">{error}</p> : null}
       {created?.api_key ? (
         <div className="saved-box" role="status">
-          <p className="kicker">Copy now — it will not be shown again</p>
+          <p className="kicker">Copy now — shown once</p>
           <pre>{created.api_key}</pre>
           {created.webhook_secret ? (
             <>

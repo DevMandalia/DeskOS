@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { FocusToggle } from "@/components/focus-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BATCH_HREF, BOARD_HREF, CHATS_HREF, HOME_HREF, REVIEW_HREF, STATS_HREF, type DeskScope, type NavModel } from "@/lib/nav";
 
@@ -69,7 +70,7 @@ export function SideNav({
 
       <details className="side-section side-areas" open={Boolean(scope.area)}>
         <summary className="side-label side-summary">
-          Areas <span className="side-label-note">· waiting</span>
+          Areas
         </summary>
         <ul className="side-list">
           <li>
@@ -116,6 +117,7 @@ export function SideNav({
         </Link>
       </div>
       <div className="theme-toggle-slot">
+        <FocusToggle />
         <ThemeToggle />
       </div>
     </nav>

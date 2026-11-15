@@ -30,12 +30,12 @@ export default async function BatchPage() {
     <DeskFrame email={user.email} rows={rows} scope={{ area: null, view: "waiting", includeDone: false }}>
       <div className="desk">
         <header className="desk-head">
-          <h1>Batch similar</h1>
-          <p className="desk-sub">Two-way, low-stakes waiting decisions only. Each row still gets its own verdict.</p>
+          <h1>Batch</h1>
+          <p className="desk-sub">Low-stakes waiting only. Each row still gets a verdict.</p>
         </header>
         {groups.length === 0 ? (
           <p className="empty">
-            No similar group of two or more. <Link href="/waiting">Waiting on you</Link>
+            No similar group. <Link href="/waiting">Waiting on you</Link>
           </p>
         ) : (
           <BatchGroups groups={groups} parkDate={batchParkDate(today)} />

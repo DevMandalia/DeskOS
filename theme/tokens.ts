@@ -9,6 +9,12 @@ export type Theme = (typeof THEMES)[number];
 export const PREFERENCES = ["system", "light", "dark"] as const;
 export type ThemePreference = (typeof PREFERENCES)[number];
 
+/** Click-cycle order for the header theme button. System stays the default. */
+export function nextPreference(current: ThemePreference): ThemePreference {
+  const i = PREFERENCES.indexOf(current);
+  return PREFERENCES[(i + 1) % PREFERENCES.length];
+}
+
 export function isTheme(value: string | null | undefined): value is Theme {
   return value === "light" || value === "dark";
 }

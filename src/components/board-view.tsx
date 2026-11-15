@@ -101,7 +101,7 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
     tasksRef.current = tasks;
   }, [tasks]);
   const quickRef = useRef<HTMLInputElement | null>(null);
-  const [openAdd, setOpenAdd] = useState(0);
+  const [adding, setAdding] = useState(false);
 
   const [columns, setColumns] = useState<BoardColumn[]>(
     initial?.columns?.length ? initial.columns : resolveColumns(schema.statusOptions),
@@ -160,11 +160,15 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (isTyping(event.target)) return;
       event.preventDefault();
-      setOpenAdd((n) => n + 1);
+      setAdding(true);
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    if (adding) quickRef.current?.focus();
+  }, [adding]);
 
   const update = useCallback(async (task: Task, patch: TaskPatch, what: string) => {
     const before = tasksRef.current.find((t) => t.id === task.id);
@@ -300,20 +304,19 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
     <div className="board">
       <header className="desk-head board-head">
         <div>
-          <h1 className="home-hello">
-            Board. <span className="home-hello-muted">Your to-dos.</span>
+          <h1 className="home-hello" title={storeLabel}>
+            Board
           </h1>
           <p className="desk-sub">
             {shown} {shown === 1 ? "task" : "tasks"}
-            {area ? ` in ${area}` : ""} · {storeLabel}
-            {synced ? ` · checked ${new Date(synced).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
-            {doing ? ` · ${doing.label} ${inProgress} / limit ${wipLimit}` : ""}
+            {area ? ` in ${area}` : ""}
+            {doing ? ` · ${doing.label} ${inProgress}/${wipLimit}` : ""}
           </p>
         </div>
         <button
           type="button"
           className="board-new"
-          onClick={() => setOpenAdd((n) => n + 1)}
+          onClick={() => setAdding(true)}
           disabled={!columns.some((c) => c.status)}
         >
           New to-do <kbd>N</kbd>
@@ -323,7 +326,7 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
       {wipConfirm ? (
         <div className="modal-back" role="presentation" onClick={() => setWipConfirm(null)}>
           <div className="modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <h2>{inProgress} are already in progress. Move one out, or confirm overflow.</h2>
+            <h2>{inProgress} in progress. Move one out, or confirm overflow.</h2>
             <div className="modal-actions">
               <button
                 type="button"
@@ -343,7 +346,15 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
           </div>
         </div>
       ) : null}
-      <QuickAdd inputRef={quickRef} areas={areas} target={addTo?.label ?? null} onAdd={add} disabled={!columns.some((c) => c.status)} hidden />
+      <QuickAdd
+        inputRef={quickRef}
+        areas={areas}
+        target={addTo?.label ?? null}
+        onAdd={add}
+        disabled={!columns.some((c) => c.status)}
+        hidden={!adding}
+        onClose={() => setAdding(false)}
+      />
 
       <div className="board-tools">
         <label className="board-filter">
@@ -387,13 +398,10 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
               today={today}
               onMove={move}
               onEdit={update}
-              onAdd={add}
               doing={doing}
               focusId={activeFocus}
               onPin={pin}
               wipLimit={wipLimit}
-              inputRef={lane.key === addTo?.key ? quickRef : undefined}
-              openSignal={lane.key === addTo?.key ? openAdd : 0}
             />
           ))}
         </div>
@@ -402,9 +410,7 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
         </DragOverlay>
       </DndContext>
       <p className="board-foot">
-        Drag a card to another column, or use its Move menu. Press <kbd>N</kbd> to add a task. Column names
-        come from your task store (or BOARD_COLUMNS). Edits made in Notion show up when you reload or press
-        Refresh.
+        Drag to move. <kbd>N</kbd> adds a task. <kbd>\</kbd> hides the side panels.
       </p>
     </div>
   );
@@ -417,6 +423,7 @@ function QuickAdd({
   onAdd,
   disabled,
   hidden = false,
+  onClose,
 }: {
   inputRef: React.RefObject<HTMLInputElement | null>;
   areas: string[];
@@ -424,6 +431,7 @@ function QuickAdd({
   onAdd: (text: string, area: string, due: string, status?: string | null) => Promise<boolean>;
   disabled: boolean;
   hidden?: boolean;
+  onClose?: () => void;
 }) {
   const [text, setText] = useState("");
   const [area, setArea] = useState("");
@@ -452,9 +460,12 @@ function QuickAdd({
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-          if (e.key === "Escape") (e.target as HTMLInputElement).blur();
+          if (e.key === "Escape") {
+            (e.target as HTMLInputElement).blur();
+            onClose?.();
+          }
         }}
-        placeholder="Add a task and press Enter"
+        placeholder="Title, then Enter"
         autoComplete="off"
         disabled={disabled}
         aria-keyshortcuts="N"
@@ -480,96 +491,7 @@ function QuickAdd({
         </button>
       </div>
       <p className="quick-add-hint">
-        Goes to {target ?? "the board"}. Press <kbd>N</kbd> from anywhere on this page. Tag an area inline with{" "}
-        <code>#Ops</code>.
-      </p>
-    </form>
-  );
-}
-
-function LaneAdd({
-  areas,
-  status,
-  onAdd,
-  inputRef,
-  openSignal = 0,
-}: {
-  areas: string[];
-  status: string;
-  onAdd: (text: string, area: string, due: string, status?: string | null) => Promise<boolean>;
-  inputRef?: React.RefObject<HTMLInputElement | null>;
-  openSignal?: number;
-}) {
-  const localRef = useRef<HTMLInputElement | null>(null);
-  const ref = inputRef ?? localRef;
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (!openSignal) return;
-    setOpen(true);
-  }, [openSignal]);
-
-  useEffect(() => {
-    if (open) ref.current?.focus();
-  }, [open, ref]);
-  const [text, setText] = useState("");
-  const [area, setArea] = useState("");
-
-  function close() {
-    setOpen(false);
-    setText("");
-  }
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    const value = text.trim();
-    if (!value) return;
-    setText("");
-    const ok = await onAdd(value, area, "", status);
-    if (ok) close();
-    else setText(value);
-  }
-
-  if (!open) {
-    return (
-      <button type="button" className="lane-add" onClick={() => setOpen(true)}>
-        + Add a to-do
-      </button>
-    );
-  }
-
-  return (
-    <form className="lane-add-form" onSubmit={submit}>
-      <input
-        ref={ref}
-        className="quick-add-input"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            close();
-          }
-        }}
-        placeholder="Add a to-do"
-        autoFocus
-        autoComplete="off"
-      />
-      <div className="quick-add-opts">
-        <label>
-          <span className="sr-only">Area (optional)</span>
-          <select value={area} onChange={(e) => setArea(e.target.value)} aria-label="Area (optional)">
-            <option value="">No area</option>
-            {areas.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <p className="quick-add-hint">
-        <kbd>Enter</kbd> to add, <kbd>Esc</kbd> to cancel
+        {target ?? "Board"}. <kbd>N</kbd> to add. <code>#Ops</code> for area. <kbd>Esc</kbd> closes.
       </p>
     </form>
   );
@@ -582,13 +504,10 @@ function Lane({
   today,
   onMove,
   onEdit,
-  onAdd,
   doing,
   focusId,
   onPin,
   wipLimit,
-  inputRef,
-  openSignal,
 }: {
   lane: BoardLane;
   columns: BoardColumn[];
@@ -596,13 +515,10 @@ function Lane({
   today: string;
   onMove: (task: Task, key: ColumnKey) => void;
   onEdit: (task: Task, patch: TaskPatch, what: string) => Promise<void>;
-  onAdd: (text: string, area: string, due: string, status?: string | null) => Promise<boolean>;
   doing: BoardColumn | null;
   focusId: string | null;
   onPin: (id: string | null) => void;
   wipLimit: number;
-  inputRef?: React.RefObject<HTMLInputElement | null>;
-  openSignal?: number;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: lane.key, disabled: !lane.status });
   const [all, setAll] = useState(false);
@@ -620,14 +536,8 @@ function Lane({
         <span>{lane.label}</span>
         <span className="lane-count">{lane.tasks.length}</span>
       </h2>
-      {lane.status ? (
-        <LaneAdd areas={areas} status={lane.status} onAdd={onAdd} inputRef={inputRef} openSignal={openSignal} />
-      ) : null}
       {!lane.status ? (
-        <p className="lane-empty">
-          This board has no “{lane.label}” status yet. Add that status on the store, or drop BOARD_COLUMNS,
-          and this column starts taking cards.
-        </p>
+        <p className="lane-empty">No {lane.label} status. Set BOARD_COLUMNS.</p>
       ) : null}
       <ul className="lane-cards">
         {visible.map((task, index) => (
@@ -655,23 +565,36 @@ function Lane({
   );
 }
 
-function CardFace({ task, today, overlay = false }: { task: Task; today: string; overlay?: boolean }) {
+function CardFace({
+  task,
+  today,
+  overlay = false,
+  metaOnly = false,
+}: {
+  task: Task;
+  today: string;
+  overlay?: boolean;
+  metaOnly?: boolean;
+}) {
   const due = dueLabel(task.due, today);
   const meta = [task.area, raisedByLabel(task.raisedBy), task.priority].filter(Boolean);
+  const metaLine =
+    meta.length || due ? (
+      <p className="task-meta">
+        {meta.join(" · ")}
+        {due ? (
+          <>
+            {meta.length ? " · " : ""}
+            <span className={due.overdue ? "task-overdue" : ""}>{due.text}</span>
+          </>
+        ) : null}
+      </p>
+    ) : null;
+  if (metaOnly) return metaLine;
   return (
     <div className={`task-face ${overlay ? "task-overlay" : ""}`}>
       <p className="task-title">{task.title}</p>
-      {meta.length || due ? (
-        <p className="task-meta">
-          {meta.join(" · ")}
-          {due ? (
-            <>
-              {meta.length ? " · " : ""}
-              <span className={due.overdue ? "task-overdue" : ""}>{due.text}</span>
-            </>
-          ) : null}
-        </p>
-      ) : null}
+      {metaLine}
     </div>
   );
 }
@@ -703,16 +626,18 @@ function TaskCard({
   const [editing, setEditing] = useState(false);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, disabled: editing || temp });
   const current = columnOf(task, columns);
+  const source = task.url && task.url.startsWith("http") ? task.url : null;
 
   return (
     <li
-            className={`task ${isDragging ? "task-dragging" : ""} ${temp ? "task-saving task-added" : ""} ${focused ? "task-focus" : ""} ${overflow ? "task-overflow" : ""}`}
+      className={`task ${isDragging ? "task-dragging" : ""} ${temp ? "task-saving task-added" : ""} ${focused ? "task-focus" : ""} ${overflow ? "task-overflow" : ""}`}
       data-task={task.id}
     >
       {editing ? (
         <TaskEditor
           task={task}
           areas={areas}
+          source={source}
           onCancel={() => setEditing(false)}
           onSave={(patch) => {
             setEditing(false);
@@ -721,54 +646,59 @@ function TaskCard({
         />
       ) : (
         <>
-          <div
-            ref={setNodeRef}
-            className="task-grab"
-            {...listeners}
-            {...attributes}
-            aria-roledescription="draggable task"
-            aria-label={`${task.title}. Press space to pick up, arrow keys to change column, space to drop.`}
-          >
-            <span className="task-grip" aria-hidden="true">
+          <div className="task-grab">
+            <span
+              ref={setNodeRef}
+              className="task-grip"
+              {...listeners}
+              {...attributes}
+              aria-roledescription="draggable task"
+              aria-label={`Move ${task.title}`}
+            >
               ⋮⋮
             </span>
-            <CardFace task={task} today={today} />
+            <div className="task-face" onClick={() => !temp && setEditing(true)}>
+              <button type="button" className="task-title-btn" disabled={temp}>
+                {task.title}
+              </button>
+              <CardFace task={task} today={today} metaOnly />
+            </div>
           </div>
           <div className="task-actions">
-            <label className="task-move">
-              <span className="sr-only">Move {task.title} to</span>
-              <select
-                value={current}
-                disabled={temp}
-                onChange={(e) => onMove(task, e.target.value as ColumnKey)}
-                aria-label={`Move "${task.title}" to`}
-              >
-                {columns.map((c) => (
-                  <option key={c.key} value={c.key} disabled={!c.status}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {canPin && onPin ? (
-              <button
-                type="button"
-                className="text-btn"
-                disabled={temp}
-                onClick={() => onPin(focused ? null : task.id)}
-              >
-                {focused ? "Unpin" : "Focus"}
-              </button>
-            ) : null}
             {overflow ? <span className="task-overflow-badge">Overflow</span> : null}
-            <button type="button" className="text-btn" disabled={temp} onClick={() => setEditing(true)}>
-              Edit
-            </button>
-            {task.url && task.url.startsWith("http") ? (
-              <a className="task-open" href={task.url} target="_blank" rel="noreferrer">
-                Open ↗
-              </a>
-            ) : null}
+            <details className="task-menu">
+              <summary aria-label={`More for ${task.title}`}>⋯</summary>
+              <div className="task-menu-panel">
+                <button type="button" className="text-btn" disabled={temp} onClick={() => setEditing(true)}>
+                  Edit
+                </button>
+                <label className="task-move">
+                  <span className="sr-only">Move {task.title} to</span>
+                  <select
+                    value={current}
+                    disabled={temp}
+                    onChange={(e) => onMove(task, e.target.value as ColumnKey)}
+                    aria-label={`Move "${task.title}" to`}
+                  >
+                    {columns.map((c) => (
+                      <option key={c.key} value={c.key} disabled={!c.status}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {canPin && onPin ? (
+                  <button type="button" className="text-btn" disabled={temp} onClick={() => onPin(focused ? null : task.id)}>
+                    {focused ? "Unpin" : "Pin"}
+                  </button>
+                ) : null}
+                {source ? (
+                  <a className="text-btn" href={source} target="_blank" rel="noreferrer">
+                    Source
+                  </a>
+                ) : null}
+              </div>
+            </details>
           </div>
         </>
       )}
@@ -779,11 +709,13 @@ function TaskCard({
 function TaskEditor({
   task,
   areas,
+  source,
   onCancel,
   onSave,
 }: {
   task: Task;
   areas: string[];
+  source?: string | null;
   onCancel: () => void;
   onSave: (patch: TaskPatch) => void;
 }) {
@@ -829,6 +761,11 @@ function TaskEditor({
         <button type="button" className="text-btn" onClick={onCancel}>
           Cancel
         </button>
+        {source ? (
+          <a className="text-btn" href={source} target="_blank" rel="noreferrer">
+            Source
+          </a>
+        ) : null}
       </div>
     </form>
   );

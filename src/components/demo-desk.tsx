@@ -49,7 +49,7 @@ export function DemoDesk({
           <p className="signin-subtitle">{demoBanner()}</p>
           <p>
             <Link href="/" className="btn btn-approve signin-btn">
-              Open the sample desk
+              Open demo
             </Link>
           </p>
         </section>
@@ -71,7 +71,7 @@ export function DemoDesk({
       {page === "settings" ? (
         <div className="desk">
           <h1>Settings</h1>
-          <p className="desk-sub">Agent API keys are disabled in the static demo.</p>
+          <p className="desk-sub">Keys off in the demo.</p>
         </div>
       ) : null}
       <span className="sr-only">{pathname}</span>
@@ -86,12 +86,12 @@ function DemoHome({ rows }: { rows: BriefRow[] }) {
     <div className="home">
       <header className="desk-head">
         <h1 className="home-hello">
-          Good morning, Alex. <span className="home-hello-muted">Here&apos;s what needs you.</span>
+          Good morning, Alex. <span className="home-hello-muted">What needs you.</span>
         </h1>
         <p className="home-lede">
           {waiting.length === 0
-            ? "Nothing is waiting on you right now."
-            : `${waiting.length} ${waiting.length === 1 ? "decision is" : "decisions are"} waiting on you.`}
+            ? "Nothing waiting."
+            : `${waiting.length} waiting.`}
         </p>
         {waiting[0] ? (
           <p className="home-cta">
@@ -119,7 +119,7 @@ function DemoHome({ rows }: { rows: BriefRow[] }) {
           ))}
         </ol>
         <p className="home-more">
-          <Link href={BOARD_HREF}>Your tasks are on the Board →</Link>
+          <Link href={BOARD_HREF}>Board →</Link>
         </p>
       </section>
     </div>
@@ -177,7 +177,7 @@ function DemoDecision({ rows, id, scope }: { rows: BriefRow[]; id: string; scope
   if (!row) {
     return (
       <div className="desk">
-        <p>That sample decision is not in this demo.</p>
+        <p>Not in this demo.</p>
         <Link href={deskHref({ view: "waiting" })}>Back to Waiting</Link>
       </div>
     );
@@ -208,7 +208,7 @@ function DemoDecision({ rows, id, scope }: { rows: BriefRow[]; id: string; scope
       <p className="decision-meta">{meta.join(" · ")}</p>
       <section className="verdict decision-object" aria-label="Decision needed">
         <p className="kicker">Decision needed</p>
-        <p className="verdict-need">{row.decisionNeeded ?? "No decision text on this row."}</p>
+        <p className="verdict-need">{row.decisionNeeded ?? "No decision text."}</p>
       </section>
       <DecisionBrief row={row} />
       <DecisionPanel

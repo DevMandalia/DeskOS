@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { CHAT_PANE, clampWidth, LAYOUT_BOOTSTRAP_SCRIPT, NAV_PANE, parseCollapsed, parseWidth } from "@/lib/layout-prefs";
+import {
+  CHAT_PANE,
+  clampWidth,
+  FOCUS_KEY,
+  LAYOUT_BOOTSTRAP_SCRIPT,
+  NAV_PANE,
+  parseCollapsed,
+  parseFocus,
+  parseWidth,
+} from "@/lib/layout-prefs";
 
 describe("pane widths", () => {
   it("clamps to each pane's bounds and falls back to the default", () => {
@@ -15,6 +24,8 @@ describe("pane widths", () => {
     expect(parseWidth("700", CHAT_PANE)).toBe(480);
     expect(parseCollapsed("1")).toBe(true);
     expect(parseCollapsed(null)).toBe(false);
+    expect(parseFocus("1")).toBe(true);
+    expect(parseFocus(null)).toBe(false);
   });
 
   it("boot script applies stored widths and collapsed state to <html>", () => {
@@ -36,5 +47,20 @@ describe("pane widths", () => {
     expect(props.get("--chat-w")).toBe("340px");
     expect(attrs.get("data-nav")).toBe("open");
     expect(attrs.get("data-chat")).toBe("collapsed");
+    expect(attrs.get("data-focus")).toBe("off");
+  });
+
+  it("boot script turns focus mode on from localStorage", () => {
+    const store = new Map<string, string>([[FOCUS_KEY, "1"]]);
+    const attrs = new Map<string, string>();
+    const fakeDocument = {
+      documentElement: {
+        style: { setProperty: () => undefined },
+        setAttribute: (k: string, v: string) => attrs.set(k, v),
+      },
+    };
+    const fakeStorage = { getItem: (k: string) => store.get(k) ?? null };
+    new Function("document", "localStorage", LAYOUT_BOOTSTRAP_SCRIPT)(fakeDocument, fakeStorage);
+    expect(attrs.get("data-focus")).toBe("on");
   });
 });

@@ -40,6 +40,14 @@ export const RESIZE_STEP_BIG = 64;
 /** Docked panes from this width up; below it the nav and chat are drawers. */
 export const DOCK_MIN_WIDTH = 1024;
 
+/** Hide both side panes so the center column is full width. */
+export const FOCUS_KEY = "desk-focus-mode";
+export const FOCUS_SHORTCUT = "\\";
+
+export function parseFocus(raw: string | null | undefined): boolean {
+  return raw === "1";
+}
+
 export function clampWidth(value: number, spec: PaneSpec): number {
   if (!Number.isFinite(value)) return spec.def;
   return Math.min(spec.max, Math.max(spec.min, Math.round(value)));
@@ -66,5 +74,6 @@ export const LAYOUT_BOOTSTRAP_SCRIPT = `(function(){
       root.style.setProperty(p.cssVar, w + "px");
       root.setAttribute(p.attr, localStorage.getItem(p.collapsedKey) === "1" ? "collapsed" : "open");
     }
+    root.setAttribute("data-focus", localStorage.getItem(${JSON.stringify(FOCUS_KEY)}) === "1" ? "on" : "off");
   } catch (e) {}
 })();`;

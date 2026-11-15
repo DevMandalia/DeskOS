@@ -2,6 +2,7 @@ import {
   DARK,
   LIGHT,
   THEME_STORAGE_KEY,
+  nextPreference,
   readStoredPreference,
   resolveTheme,
   type Theme,
@@ -43,6 +44,10 @@ export function choosePreference(next: ThemePreference) {
   window.localStorage.setItem(THEME_STORAGE_KEY, next);
   applyTheme(resolveTheme(next, systemDark()), next);
   emitTheme();
+}
+
+export function cyclePreference() {
+  choosePreference(nextPreference(readPreference()));
 }
 
 export function subscribeTheme(listener: () => void) {

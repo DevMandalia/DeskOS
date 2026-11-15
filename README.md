@@ -58,7 +58,7 @@ On Vercel the kit falls back to the in-memory store unless you set `DATABASE_URL
 - Discuss opens a reply thread (owner and agent take turns) until Approve, Decline, or Park
 - Board of tasks with configurable column names
 - Home, Waiting, In flight, Parked, Done (Done includes Declined)
-- Dark mode, Prev / Next, keyboard shortcuts
+- Dark mode, Prev / Next, keyboard shortcuts (`J`/`K` queue, `N` new to-do, `\` focus)
 - Owner-only Auth.js sign-in (`OWNER_EMAIL` allowlist)
 - Agent HTTP API with hashed per-agent keys (`ddk_…`)
 - Optional per-agent HMAC webhooks (`X-Desk-Signature`) plus polling `get_verdict`

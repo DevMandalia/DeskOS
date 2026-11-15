@@ -27,11 +27,11 @@ export default async function StatsPage() {
     <DeskFrame email={user.email} rows={rows} scope={{ area: null, view: "waiting", includeDone: false }}>
       <div className="desk">
         <header className="desk-head">
-          <h1>Agent scorecard</h1>
-          <p className="desk-sub">Unscored counts. Learned auto-approve is not built.</p>
+          <h1>Agents</h1>
+          <p className="desk-sub">Counts. Auto-approve is not built.</p>
         </header>
         {agents.length === 0 ? (
-          <p className="empty">No agents have raised yet.</p>
+          <p className="empty">No agents yet.</p>
         ) : (
           <table className="stats-table">
             <thead>

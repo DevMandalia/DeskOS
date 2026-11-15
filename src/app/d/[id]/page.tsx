@@ -91,7 +91,7 @@ export default async function DecisionPage({
 
         <section className="verdict decision-object" aria-label="Decision needed">
           <p className="kicker">Decision needed</p>
-          <p className="verdict-need">{row.decisionNeeded ?? "No decision text on this row."}</p>
+          <p className="verdict-need">{row.decisionNeeded ?? "No decision text."}</p>
           {row.nextStep ? (
             <p className="verdict-next">
               <span className="verdict-next-label">Next step</span>

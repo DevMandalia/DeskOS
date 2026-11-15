@@ -244,14 +244,14 @@ export function DecisionPanel({
       {noteOpen ? (
         <div className="note-wrap">
           <label className="note-label" htmlFor="decision-note">
-            Note for the lead (optional)
+            Note (optional)
           </label>
           <textarea
             id="decision-note"
             ref={noteRef}
             className="note"
             rows={3}
-            placeholder="A sentence for the lead to pass on…"
+            placeholder="Note…"
             value={note}
             onChange={(event) => setNote(event.target.value)}
             disabled={disabled}
@@ -260,7 +260,7 @@ export function DecisionPanel({
       ) : (
         <p className="note-open">
           <button type="button" className="text-btn note-open-btn" onClick={openNote}>
-            + Add a note
+            + Note
           </button>
         </p>
       )}
@@ -324,7 +324,7 @@ export function DecisionPanel({
       </div>
       <p className="keys">
         <kbd>←</kbd> <kbd>→</kbd> prev · next · <kbd>a</kbd> <kbd>d</kbd> <kbd>p</kbd> <kbd>x</kbd>{" "}
-        approve · decline · park · discuss · <kbd>n</kbd> note
+        approve · decline · park · discuss · <kbd>n</kbd> note · <kbd>\</kbd> panels
       </p>
 
       {saved ? (
@@ -358,8 +358,8 @@ export function DecisionPanel({
             <h2 id="confirm-title">{confirmingLabel} this?</h2>
             <p>
               {isStaticDemo()
-                ? "This stays in your browser. Nothing is sent anywhere."
-                : `Your answer is saved on this desk and the raising agent (${row.owner ?? "the lead"}) is notified.`}
+                ? "Stays in this browser."
+                : `Saved on this desk. ${row.owner ?? "The lead"} is notified.`}
             </p>
             {note.trim() ? <blockquote>{note.trim()}</blockquote> : null}
             {confirming === "Park" ? (
@@ -370,7 +370,7 @@ export function DecisionPanel({
                   value={revisitAt}
                   onChange={(event) => setRevisitAt(event.target.value)}
                 />
-                <span className="park-revisit-hint">Nothing is deleted. On that date the desk will ask keep, park again, or decline.</span>
+                <span className="park-revisit-hint">Nothing deleted. That day: keep, park, or decline.</span>
               </label>
             ) : null}
             {confirming === "Decline" ? (

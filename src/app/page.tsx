@@ -82,8 +82,8 @@ export default async function HomePage({
     oldestDays === null
       ? ""
       : oldestDays === 0
-        ? " The oldest came in today."
-        : ` The oldest has waited ${oldestDays} ${oldestDays === 1 ? "day" : "days"}.`;
+        ? " Oldest: today."
+        : ` Oldest: ${oldestDays}d.`;
 
   const name = firstName(user.name, user.email);
   const hello = helloPhrase(now, name, deskTimezone());
@@ -99,12 +99,12 @@ export default async function HomePage({
           </p>
           <h1 className="home-hello">
             {hello}{" "}
-            <span className="home-hello-muted">Here&apos;s what needs you.</span>
+            <span className="home-hello-muted">What needs you.</span>
           </h1>
           <p className="home-lede">
             {home.totalWaiting === 0
-              ? "Nothing is waiting on you right now."
-              : `${home.totalWaiting} ${home.totalWaiting === 1 ? "decision is" : "decisions are"} waiting on you.`}
+              ? "Nothing waiting."
+              : `${home.totalWaiting} waiting.`}
             {oldestAge}
           </p>
           {home.totalWaiting > 0 && next ? (
@@ -139,10 +139,10 @@ export default async function HomePage({
           <p className="desk-sub">
             {session.complete
               ? "Session complete."
-              : `${session.remaining} of ${session.cap} verdicts left in this session.`}
+              : `${session.remaining} of ${session.cap} left.`}
           </p>
           {session.doneToday.length === 0 ? (
-            <p className="empty">Nothing decided yet today.</p>
+            <p className="empty">Nothing today.</p>
           ) : (
             <ol className="home-list">
               {session.doneToday.map((line, i) => (
@@ -154,7 +154,7 @@ export default async function HomePage({
           )}
           {overdueChats.length > 0 ? (
             <div>
-              <p className="desk-sub">Overdue chats (do not count toward the verdict cap).</p>
+              <p className="desk-sub">Overdue chats — not in the cap.</p>
               <ul className="home-list">
                 {overdueChats.map((chat) => (
                   <ChatRow key={chat.id} chat={chat} snoozeDate={snoozeDate} />
@@ -172,7 +172,7 @@ export default async function HomePage({
             <h2 id="home-defaults" className="home-h2">
               Defaults tomorrow
             </h2>
-            <p className="desk-sub">If you don’t decide today, these take their stored default tomorrow.</p>
+            <p className="desk-sub">These default tomorrow if you don’t decide.</p>
             <ol className="home-list">
               {defaultsTomorrow.map((row) => (
                 <li key={row.id}>
@@ -202,10 +202,10 @@ export default async function HomePage({
                 <Link href={decisionHref(next.id, HOME_SCOPE)}>{displayTitle(next.item)}</Link>
               </h3>
               <p className="verdict-need">
-                <strong>Decision needed:</strong> {next.decisionNeeded ?? "No decision text on this row."}
+                <strong>Decision needed:</strong> {next.decisionNeeded ?? "No decision text."}
               </p>
               {timeoutNoticeTomorrow(next, today, STATUS.waiting, { classOn: timeoutClassOn() }) ? (
-                <p className="decision-brief-note">This will be applied tomorrow unless you decide or extend the date.</p>
+                <p className="decision-brief-note">Applies tomorrow unless you decide.</p>
               ) : null}
               <ContinueAnyway complete={session.complete}>
                 <DecisionPanel
@@ -271,31 +271,31 @@ export default async function HomePage({
 
         <section className="home-section home-guide" id="how-to-use" aria-labelledby="home-guide">
           <h2 id="home-guide" className="home-h2">
-            How to use the Desk. <span className="two-weight-muted">Four habits.</span>
+            Habits.
           </h2>
           <ol className="habits">
             <li>
               <span className="habits-n">1</span>
               <p>
-                <strong>Decide.</strong> Open it, read it, press Approve, Decline or Discuss.
+                <strong>Decide.</strong> Approve, Decline, or Discuss.
               </p>
             </li>
             <li>
               <span className="habits-n">2</span>
               <p>
-                <strong>Move through the queue.</strong> Prev and Next, or <kbd>J</kbd> and <kbd>K</kbd>. {queueOrderHint(sort)}.
+                <strong>Queue.</strong> <kbd>J</kbd> / <kbd>K</kbd> or Prev / Next. {queueOrderHint(sort)}.
               </p>
             </li>
             <li>
               <span className="habits-n">3</span>
               <p>
-                <strong>Ask the Desk agent.</strong> Only your buttons change anything.
+                <strong>Ask.</strong> Buttons decide; the agent doesn&apos;t.
               </p>
             </li>
             <li>
               <span className="habits-n">4</span>
               <p>
-                <strong>Track to-dos on the Board.</strong> Press <kbd>N</kbd> to quick-add.
+                <strong>Board.</strong> <kbd>N</kbd> adds a to-do. <kbd>\</kbd> hides the side panels.
               </p>
             </li>
           </ol>

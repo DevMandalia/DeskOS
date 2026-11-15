@@ -9,6 +9,7 @@ export {
   contrastRatio,
   isPreference,
   isTheme,
+  nextPreference,
   parsePreference,
   readStoredPreference,
   relativeLuminance,

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { AccountMenu } from "@/components/account-menu";
 import { DrawerToggle } from "@/components/app-frame";
+import { FocusToggle } from "@/components/focus-toggle";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { isStaticDemo } from "@/lib/demo-mode";
@@ -35,8 +36,9 @@ export function SiteHeader({
             </Link>
           ) : null}
           <DrawerToggle drawer="chat" />
+          <FocusToggle />
+          <ThemeToggle />
           <AccountMenu>
-            <ThemeToggle />
             {demo ? <span className="kicker muted">Demo</span> : null}
             {!demo && email ? <span className="kicker muted account-email">{email}</span> : null}
             {!demo && !bypass ? <SignOutButton /> : null}

@@ -1,9 +1,9 @@
-export const SIGNIN_SUBTITLE = "Private desk. Only the owner's account can sign in.";
+export const SIGNIN_SUBTITLE = "Owner account only.";
 
 export const WRONG_ACCOUNT_MESSAGE =
-  "That account can't open this desk. Sign in with the owner email.";
+  "Wrong account. Sign in as the owner.";
 
-export const GENERIC_SIGNIN_ERROR = "Sign-in didn't finish. Please try again.";
+export const GENERIC_SIGNIN_ERROR = "Sign-in didn't finish. Try again.";
 
 export function signInErrorMessage(code: string | string[] | null | undefined): string | null {
   const value = Array.isArray(code) ? code[0] : code;

@@ -78,12 +78,11 @@ function DemoChatOff() {
     <section className="chat" aria-labelledby="demo-chat-off-title">
       <div className="chat-empty" role="note">
         <p className="chat-empty-title" id="demo-chat-off-title">
-          Chat is off in this demo
+          Chat is off
         </p>
         <p>
-          Chat is disabled in the static demo. Self-hosters can enable it by setting{" "}
-          <code>{CHAT_COMPLETIONS_ENV}</code>. See{" "}
-          <a href={DEMO_CHAT_README_HREF}>Optional chat in the README</a>.
+          Set <code>{CHAT_COMPLETIONS_ENV}</code> to enable.{" "}
+          <a href={DEMO_CHAT_README_HREF}>README</a>.
         </p>
       </div>
     </section>

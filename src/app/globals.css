@@ -156,12 +156,8 @@ a:hover {
     display: flex;
   }
 
-  .account-panel .theme-toggle {
+  .account-panel .theme-icon {
     align-self: flex-start;
-  }
-
-  .account-panel .theme-btn {
-    padding: 8px 14px;
   }
 
   .account-email {
@@ -175,30 +171,53 @@ a:hover {
   }
 }
 
-.theme-toggle {
+.theme-icon,
+.focus-toggle {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 10px;
   border: 1px solid var(--ds-border);
   border-radius: 999px;
-  overflow: hidden;
   background: var(--ds-card);
-}
-
-.theme-btn {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--ds-secondary);
-  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 5px 10px;
+  color: var(--ds-text);
+  font: inherit;
+  font-size: 13px;
   cursor: pointer;
 }
 
-.theme-btn-active {
-  background: var(--ds-teal-fill);
-  color: var(--ds-on-fill);
+.theme-icon {
+  width: 36px;
+  padding: 0;
+}
+
+.theme-icon:hover,
+.focus-toggle:hover,
+.focus-exit:hover {
+  border-color: var(--ds-teal);
+  color: var(--ds-teal);
+}
+
+.theme-icon:focus-visible,
+.focus-toggle:focus-visible,
+.focus-exit:focus-visible {
+  outline: 2px solid var(--ds-teal);
+  outline-offset: 2px;
+}
+
+.focus-toggle kbd,
+.focus-exit kbd {
+  font-size: 11px;
+  padding: 0 5px;
+  border: 1px solid var(--ds-border);
+  border-radius: 4px;
+}
+
+.focus-exit {
+  display: none;
 }
 
 .text-btn {
@@ -1786,6 +1805,36 @@ html[data-theme="dark"] .signin-card {
     --chat-eff: var(--rail-w);
   }
 
+  html[data-focus="on"] .app-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html[data-focus="on"] .side-nav,
+  html[data-focus="on"] .side-panel {
+    display: none;
+  }
+
+  html[data-focus="on"] .focus-exit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: sticky;
+    top: 8px;
+    z-index: 20;
+    width: fit-content;
+    margin: 0 0 12px auto;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--ds-border);
+    border-radius: 999px;
+    background: var(--ds-card);
+    color: var(--ds-text);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: var(--shadow-card);
+  }
+
   .side-nav,
   .side-panel {
     position: relative;
@@ -2445,7 +2494,7 @@ body {
   }
 }
 
-/* Live desk chat (Hermes desk agent). */
+/* Desk agent chat. */
 .chat-status { margin-top: 2px; white-space: nowrap; }
 .chat-status-online { color: var(--ds-text); }
 .chat-status-offline, .chat-status-checking { color: var(--ds-secondary); }
@@ -3364,7 +3413,6 @@ body {
   display: flex;
   gap: 6px;
   padding: 10px 12px 4px 6px;
-  cursor: grab;
   touch-action: manipulation;
   border-radius: 10px 10px 0 0;
 }
@@ -3382,6 +3430,7 @@ body {
   line-height: 1.6;
   letter-spacing: -3px;
   user-select: none;
+  cursor: grab;
 }
 
 .task:hover .task-grip {
@@ -3390,6 +3439,8 @@ body {
 
 .task-face {
   min-width: 0;
+  flex: 1;
+  cursor: pointer;
 }
 
 .task-overlay {
@@ -3421,12 +3472,84 @@ body {
   font-weight: 600;
 }
 
+.task-title-btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.task-title-btn:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .task-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px 12px 8px 26px;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 10px 8px 10px;
   font-size: 13px;
+}
+
+.task-menu {
+  position: relative;
+  margin-left: auto;
+}
+
+.task-menu summary {
+  list-style: none;
+  cursor: pointer;
+  min-width: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--ds-secondary);
+}
+
+.task-menu summary::-webkit-details-marker,
+.task-menu summary::marker {
+  display: none;
+  content: none;
+}
+
+.task-menu summary:hover,
+.task-menu[open] summary {
+  background: var(--hover);
+  color: var(--ds-text);
+}
+
+.task-menu-panel {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 8px;
+  min-width: 0;
+  padding: 8px 0 0;
+}
+
+.task-menu-panel .text-btn,
+.task-menu-panel a {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  text-align: left;
+  text-decoration: none;
+}
+
+.task-menu-panel select {
+  width: 100%;
 }
 
 .task-move select {
@@ -4136,6 +4259,7 @@ html[data-theme="dark"] .decision-object .verdict-next {
   border: 0;
   border-radius: 0;
   background: transparent;
+  overflow: visible;
 }
 
 @media (max-width: 640px) {
@@ -4203,18 +4327,13 @@ html[data-theme="dark"] .decision-object .verdict-next {
 }
 
 .task-actions {
-  flex-wrap: wrap;
-  row-gap: 6px;
-  column-gap: 8px;
+  flex-wrap: nowrap;
   min-width: 0;
   max-width: 100%;
   overflow: visible;
-  padding-left: 10px;
-  padding-right: 10px;
 }
 
 .task-move {
-  flex: 1 1 100%;
   min-width: 0;
   max-width: 100%;
 }
@@ -4266,6 +4385,9 @@ html[data-theme="dark"] .decision-object .verdict-next {
 .theme-toggle-slot {
   margin-top: auto;
   padding: 16px 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 @media (min-width: 1024px) {

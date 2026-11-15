@@ -6,6 +6,7 @@ import {
   contrastRatio,
   DARK,
   LIGHT,
+  nextPreference,
   parsePreference,
   readStoredPreference,
   resolveTheme,
@@ -53,6 +54,9 @@ describe("theme preference", () => {
     expect(resolveTheme("system", true)).toBe("dark");
     expect(resolveTheme("light", true)).toBe("light");
     expect(resolveTheme("dark", false)).toBe("dark");
+    expect(nextPreference("system")).toBe("light");
+    expect(nextPreference("light")).toBe("dark");
+    expect(nextPreference("dark")).toBe("system");
   });
 
   it("reads desk-theme, then legacy keys", () => {

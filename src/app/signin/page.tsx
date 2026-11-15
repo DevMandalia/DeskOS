@@ -28,7 +28,7 @@ export default async function SignInPage({
   return (
     <main className="signin-screen">
       <section className="signin-card" aria-labelledby="signin-title">
-        <p className="kicker signin-kicker">Private · Desk</p>
+        <p className="kicker signin-kicker">Desk</p>
         <h1 id="signin-title" className="signin-title">
           DeskOS
         </h1>

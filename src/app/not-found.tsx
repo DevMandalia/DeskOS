@@ -5,7 +5,7 @@ export default function NotFound() {
     <main className="shell forbidden">
       <p className="kicker">DeskOS</p>
       <h1>Not found</h1>
-      <p className="lede">That page is not on this desk.</p>
+      <p className="lede">Not on this desk.</p>
       <p>
         <Link href="/">Home</Link>
       </p>
