@@ -32,7 +32,7 @@ export default async function SettingsPage() {
           <h1>Settings</h1>
           <p className="desk-sub">
             API keys for agents. Each key is shown once. Stored hashed. Timeout defaults stay off until
-            TIMEOUT_DEFAULTS=two_way+low. Auto-approve stays off.
+            TIMEOUT_DEFAULTS=two_way+low. Learned auto-approve is not built.
           </p>
         </header>
         <SettingsAgents initial={agents.map(publicAgent)} />

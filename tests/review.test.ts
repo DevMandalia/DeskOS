@@ -21,6 +21,23 @@ describe("weekly review", () => {
     expect(sortReviewItems([stale!, split!]).map((i) => i.kind)).toEqual(["split", "stale_waiting"]);
   });
 
+  it("flags waiting items after 14 days, not before", () => {
+    const at14 = reviewDecisionBucket(
+      { id: "a", item: "Fourteen", status: "Waiting on you", lastUpdated: "2026-11-01" },
+      "2026-11-15",
+      "Waiting on you",
+      14,
+    );
+    const at13 = reviewDecisionBucket(
+      { id: "b", item: "Thirteen", status: "Waiting on you", lastUpdated: "2026-11-02" },
+      "2026-11-15",
+      "Waiting on you",
+      14,
+    );
+    expect(at14?.kind).toBe("stale_waiting");
+    expect(at13).toBeNull();
+  });
+
   it("asks at most 5", () => {
     const items = Array.from({ length: 8 }, (_, i) => ({
       id: String(i),

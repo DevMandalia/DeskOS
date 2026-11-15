@@ -91,7 +91,6 @@ Pick adapters with env vars. **Nothing in `src/lib`, `src/app`, or `src/componen
 | `BOARD_WIP_LIMIT` | doing-column cap | `3` |
 | `BOARD_WIP_ENFORCE` | `confirm` \| `block` \| `off` | `confirm` |
 | `SESSION_CAP` | daily counted verdicts | `5` |
-| `AUTO_APPROVE` | master switch for learned classes | `off` |
 | `REVIEW_WAITING_DAYS` | stale waiting decisions | `14` |
 | `REVIEW_TASK_DAYS` | stale undated tasks | `30` |
 | `CHAT_REVISIT_DAYS` | come-back for open chats | `3` |
@@ -104,7 +103,7 @@ Notion is an **optional example** adapter (`adapters/notion`). See `adapters/not
 
 Create a key in **Settings**. The plaintext `ddk_…` value is shown once and stored hashed. The key is the agent's identity. A lead can register a sub-agent (`POST /api/v1/agents`); every decision and task records `raised_by` (and optional parent). Board cards and Waiting show that tag.
 
-Optional fields on `raise_decision` (all backward compatible — a title-only body still works): `options` (2–7 strings), `recommendation`, `door_type` (`one_way` \| `two_way`), `cost_of_delay` (`high` \| `medium` \| `low`), `deadline` (`YYYY-MM-DD`), `default_if_no_answer` (`{ "choice": "Approve"|"Decline"|"Park", "note"? }`), `needs_split` (boolean), `parent_id`, `batch_key` (1–64 chars, `[a-zA-Z0-9_.:-]+`). Invalid *present* values return **400** with `field`. Bundles and review tasks are **accepted** and flagged `needsSplit` (never 4xx). `GET /api/v1/decisions` keeps store order unless `?sort=stakes` or `?sort=age`. Owner session (or an agent token, scoped) can `GET /api/v1/stats`. Learned auto-approve stays behind `AUTO_APPROVE=off`.
+Optional fields on `raise_decision` (all backward compatible — a title-only body still works): `options` (2–7 strings), `recommendation`, `door_type` (`one_way` \| `two_way`), `cost_of_delay` (`high` \| `medium` \| `low`), `deadline` (`YYYY-MM-DD`), `default_if_no_answer` (`{ "choice": "Approve"|"Decline"|"Park", "note"? }`), `needs_split` (boolean), `parent_id`, `batch_key` (1–64 chars, `[a-zA-Z0-9_.:-]+`). Invalid *present* values return **400** with `field`. Bundles and review tasks are **accepted** and flagged `needsSplit` (never 4xx). `GET /api/v1/decisions` keeps store order unless `?sort=stakes` or `?sort=age`. Owner session (or an agent token, scoped) can `GET /api/v1/stats`. Learned auto-approve is not built.
 
 ```bash
 # raise_decision (old agents: title is enough)

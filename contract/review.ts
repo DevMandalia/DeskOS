@@ -66,7 +66,7 @@ export function reviewDecisionBucket(
   const incompleteHigh =
     row.doorType === "one_way" || row.costOfDelay === "high" || row.costOfDelay === "medium";
   const age = daysAgo(localDay(row.lastUpdated) ?? row.lastUpdated?.slice(0, 10), today);
-  const stale = age != null && age > waitingDays;
+  const stale = age != null && age >= waitingDays;
   if (incompleteHigh && stale) {
     return { id: row.id, kind: "incomplete_high", title: row.item, reason: `Incomplete high-stakes · ${age} days`, type: "decision" };
   }

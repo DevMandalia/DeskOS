@@ -1,4 +1,4 @@
-/** Spec 10 slice S: unscored agent scorecard. Slice L stays behind AUTO_APPROVE=off. */
+/** Spec 10: unscored agent scorecard. Learned auto-approve is not built. */
 
 export type AgentStats = {
   id: string;
@@ -15,12 +15,12 @@ export type AgentStats = {
   split_rate: number;
 };
 
-export function parseAutoApprove(env: Record<string, string | undefined> = process.env): "off" | "on" {
-  return (env.AUTO_APPROVE ?? "off").trim().toLowerCase() === "on" ? "on" : "off";
+export function parseAutoApprove(): "off" {
+  return "off";
 }
 
-export function autoApproveAllowed(env: Record<string, string | undefined> = process.env): boolean {
-  return parseAutoApprove(env) === "on";
+export function autoApproveAllowed(): boolean {
+  return false;
 }
 
 export function agentStatsFromRows(

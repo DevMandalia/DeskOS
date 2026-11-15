@@ -3,10 +3,9 @@ import { describe, expect, it } from "vitest";
 import { agentStatsFromRows, autoApproveAllowed, parseAutoApprove } from "../contract";
 
 describe("agent scorecard", () => {
-  it("keeps AUTO_APPROVE off", () => {
-    expect(parseAutoApprove({})).toBe("off");
-    expect(autoApproveAllowed({})).toBe(false);
-    expect(autoApproveAllowed({ AUTO_APPROVE: "on" })).toBe(true);
+  it("does not build learned auto-approve", () => {
+    expect(parseAutoApprove()).toBe("off");
+    expect(autoApproveAllowed()).toBe(false);
   });
 
   it("uses null approval rate when nothing is closed", () => {
