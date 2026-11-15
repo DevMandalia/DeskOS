@@ -4,11 +4,13 @@ A self-hosted decision inbox for one operator. Agents raise decisions; you open 
 
 This is a kit you run yourself. It is not a hosted product.
 
-![DeskOS demo](docs/demo.gif)
+Walkthrough and stills use fake Acme data only.
 
-Sample screenshot (fake Acme data only):
+![DeskOS walkthrough](docs/demo.gif)
 
-![Home, light, desktop](docs/demo-home.png)
+![Home, light](docs/demo-home.png)
+
+![Home, dark](docs/demo-home-dark.png)
 
 ## Try the static demo
 
@@ -58,7 +60,7 @@ On Vercel the kit falls back to the in-memory store unless you set `DATABASE_URL
 - Discuss opens a reply thread (owner and agent take turns) until Approve, Decline, or Park
 - Board of tasks with configurable column names
 - Home, Waiting, In flight, Parked, Done (Done includes Declined)
-- Dark mode, Prev / Next, keyboard shortcuts (`J`/`K` queue, `N` new to-do, `\` focus)
+- Sun/moon theme icon, Prev / Next, keyboard shortcuts (`J`/`K` queue, `N` new to-do, `\` focus)
 - Owner-only Auth.js sign-in (`OWNER_EMAIL` allowlist)
 - Agent HTTP API with hashed per-agent keys (`ddk_…`)
 - Optional per-agent HMAC webhooks (`X-Desk-Signature`) plus polling `get_verdict`
