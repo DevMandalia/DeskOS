@@ -127,6 +127,7 @@ Not in this release:
 
 - **Background refresh** of the Board / desk from the store while a page is open
 - **Edit-conflict warnings** when a card changed under you
+- **Custom live activity bar** for Decision Desk, built from scratch for desk flows (agent-raised decisions, verdicts, agent working, Approve/Decline preview), inspired by islandcn's motion concepts.
 
 ## License
 
