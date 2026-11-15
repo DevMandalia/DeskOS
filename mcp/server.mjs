@@ -37,6 +37,7 @@ const TOOLS = [
         deadline: { type: "string", description: "YYYY-MM-DD" },
         needs_split: { type: "boolean" },
         parent_id: { type: "string", description: "Existing decision id when raising a child" },
+        batch_key: { type: "string", description: "Optional grouping slug for similar low-stakes items" },
       },
       required: ["title"],
     },
@@ -138,6 +139,7 @@ async function callTool(name, args = {}) {
             deadline: args.deadline,
             needs_split: args.needs_split,
             parent_id: args.parent_id,
+            batch_key: args.batch_key,
           }),
         }),
       );

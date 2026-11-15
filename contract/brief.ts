@@ -219,6 +219,7 @@ export type RaiseBody = {
   deadline?: unknown;
   parent_id?: unknown;
   needs_split?: unknown;
+  batch_key?: unknown;
 };
 
 export type ParsedRaiseBrief = {
@@ -230,6 +231,7 @@ export type ParsedRaiseBrief = {
   defaultIfNoAnswer: DefaultIfNoAnswer | null;
   parentId: string | null;
   needsSplit: boolean | undefined;
+  batchKey: string | null;
 };
 
 export function parseRaiseBrief(body: RaiseBody): { ok: true; brief: ParsedRaiseBrief } | { ok: false; field: string; error: string } {
@@ -252,6 +254,20 @@ export function parseRaiseBrief(body: RaiseBody): { ok: true; brief: ParsedRaise
     parentId = trimString(body.parent_id);
     if (!parentId) parentId = null;
   }
+  let batchKey: string | null = null;
+  if (body.batch_key !== undefined && body.batch_key !== null) {
+    if (typeof body.batch_key !== "string") {
+      return { ok: false, field: "batch_key", error: "batch_key must be a string" };
+    }
+    const trimmed = body.batch_key.trim();
+    if (trimmed) {
+      if (trimmed.length > 64) return { ok: false, field: "batch_key", error: "batch_key must be at most 64 characters" };
+      if (!/^[a-zA-Z0-9_.:-]+$/.test(trimmed)) {
+        return { ok: false, field: "batch_key", error: "batch_key may only use letters, numbers, and _.:-" };
+      }
+      batchKey = trimmed;
+    }
+  }
   return {
     ok: true,
     brief: {
@@ -263,6 +279,7 @@ export function parseRaiseBrief(body: RaiseBody): { ok: true; brief: ParsedRaise
       defaultIfNoAnswer: def.value,
       parentId,
       needsSplit: split.value,
+      batchKey,
     },
   };
 }

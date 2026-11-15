@@ -57,6 +57,9 @@ export const HOME_HREF = "/";
 
 /** Kanban of the configured task store. */
 export const BOARD_HREF = "/board";
+export const REVIEW_HREF = "/review";
+export const BATCH_HREF = "/batch";
+export const STATS_HREF = "/stats";
 
 export function viewFromSlug(slug: string | null | undefined): View | null {
   const hit = (Object.entries(VIEW_SLUG) as [View, string][]).find(([, s]) => s === slug);

@@ -95,6 +95,7 @@ export async function POST(request: Request) {
     needsSplit: parsed.brief.needsSplit,
     splitReason: parsed.brief.splitReason,
     agentTimeoutTagged: agentTaggedTimeoutFields(parsed.brief),
+    batchKey: parsed.brief.batchKey,
   });
   return Response.json({ decision: row }, { status: 201 });
 }

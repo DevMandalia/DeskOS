@@ -22,7 +22,7 @@ import {
   todayYmd,
   waitingListLabel,
 } from "../../contract";
-import { BOARD_HREF, buildHome, decisionHref, deskHref, legacyListHref, type DeskScope } from "@/lib/nav";
+import { BATCH_HREF, BOARD_HREF, REVIEW_HREF, STATS_HREF, buildHome, decisionHref, deskHref, legacyListHref, type DeskScope } from "@/lib/nav";
 import { ageDays, cardAge, displayTitle, queueOrderHint, queueSort } from "@/lib/queue";
 import { listOwnerRows } from "@/lib/owner-rows";
 import { demoDecisions } from "@/lib/seed";
@@ -115,6 +115,12 @@ export default async function HomePage({
           </ul>
           <p className="home-more">
             <Link href={BOARD_HREF}>Your tasks are on the Board →</Link>
+            {" · "}
+            <Link href={REVIEW_HREF}>Review</Link>
+            {" · "}
+            <Link href={BATCH_HREF}>Batch similar</Link>
+            {" · "}
+            <Link href={STATS_HREF}>Stats</Link>
           </p>
         </section>
 
