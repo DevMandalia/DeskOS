@@ -69,7 +69,7 @@ const chief = ref(DEMO_AGENT_IDS.chief, "Acme Chief of Staff", null, null);
 const ops = ref(DEMO_AGENT_IDS.ops, "Acme Ops", DEMO_AGENT_IDS.chief, "Acme Chief of Staff");
 
 export function demoDecisions(): Decision[] {
-  return [
+  const rows: Decision[] = [
     {
       id: DEMO_DECISION_IDS.renew,
       url: `/d/${DEMO_DECISION_IDS.renew}`,
@@ -251,6 +251,7 @@ export function demoDecisions(): Decision[] {
       needsSplit: false,
     },
   ];
+  return rows.map((row) => ({ ...row, createdAt: row.createdAt ?? row.lastUpdated }));
 }
 
 export function demoTasks(): Task[] {

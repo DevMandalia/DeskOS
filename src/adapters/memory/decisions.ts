@@ -61,6 +61,7 @@ export class MemoryDecisionSource implements DecisionSource {
         source: input.source ?? raised?.name ?? null,
         reply: null,
         lastUpdated: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         raisedBy: raised,
         lastChoice: null,
       },

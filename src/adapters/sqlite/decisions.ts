@@ -70,6 +70,7 @@ export class SqliteDecisionSource implements DecisionSource {
         source: input.source ?? raised?.name ?? null,
         reply: null,
         lastUpdated: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         raisedBy: raised,
         lastChoice: null,
         needsSplit: input.needsSplit ?? null,
@@ -90,8 +91,8 @@ export class SqliteDecisionSource implements DecisionSource {
           : JSON.stringify(input.body);
     this.db()
       .prepare(
-        `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json, brief_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json, brief_json, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         row.id,
@@ -113,6 +114,7 @@ export class SqliteDecisionSource implements DecisionSource {
         raised?.parentName ?? null,
         body,
         briefJsonOf(row),
+        row.createdAt ?? row.lastUpdated,
       );
     return row;
   }

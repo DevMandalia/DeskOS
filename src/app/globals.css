@@ -4111,19 +4111,28 @@ html[data-theme="dark"] .decision-object .verdict-next {
 }
 
 .board-lanes {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--board-col-min), 1fr));
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
   gap: var(--board-gap);
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .lane {
-  flex: none;
-  min-width: 0;
+  flex: 1 1 0;
+  min-width: 132px;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
+}
+
+@media (max-width: 640px) {
+  .lane {
+    flex: 0 0 82vw;
+    min-width: 82vw;
+  }
 }
 
 .lane-head {
@@ -4176,6 +4185,39 @@ html[data-theme="dark"] .decision-object .verdict-next {
   border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: var(--shadow-card);
+  overflow: visible;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.task-actions {
+  flex-wrap: wrap;
+  row-gap: 6px;
+  column-gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.task-move {
+  flex: 1 1 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.task-move select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.task-open {
+  flex: 0 0 auto;
+  margin-left: 0;
 }
 
 .task-added {

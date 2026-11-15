@@ -40,6 +40,7 @@ async function decisionContract(source: DecisionSource) {
   expect(created.raisedBy?.name).toBe("Acme Test");
   expect(created.doorType).toBe("two_way");
   expect(created.costOfDelay).toBe("low");
+  expect(created.createdAt).toBeTruthy();
 
   const listed = await source.list();
   expect(listed.some((d) => d.id === created.id)).toBe(true);

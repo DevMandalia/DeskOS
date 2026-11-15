@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS decisions (
   parent_id TEXT,
   parent_name TEXT,
   body_json TEXT,
-  brief_json TEXT
+  brief_json TEXT,
+  created_at TEXT
 );
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
@@ -94,4 +95,5 @@ CREATE TABLE IF NOT EXISTS meta (
 async function migrate(pool: Pool): Promise<void> {
   await pool.query(DDL);
   await pool.query("ALTER TABLE decisions ADD COLUMN IF NOT EXISTS brief_json TEXT");
+  await pool.query("ALTER TABLE decisions ADD COLUMN IF NOT EXISTS created_at TEXT");
 }

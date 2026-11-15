@@ -1,7 +1,7 @@
 import { BriefOverrides } from "@/components/brief-overrides";
 import {
-  isIncompleteBrief,
   isOverdueYmd,
+  showIncompleteBriefTag,
   splitReasonLabel,
   timeoutClassOn,
   timeoutNoticeTomorrow,
@@ -33,13 +33,16 @@ export function decisionTags(row: BriefRow, today = todayYmd(), waitingStatus = 
   if (row.revisitState === "expired") tags.push("Revisit");
   if (row.needsSplit) tags.push("Needs split");
   if (
-    isIncompleteBrief({
-      options: row.options ?? null,
-      recommendation: row.recommendation ?? null,
-      doorType: row.doorType ?? null,
-      costOfDelay: row.costOfDelay ?? null,
-      deadline: row.deadline ?? null,
-    })
+    showIncompleteBriefTag(
+      {
+        options: row.options ?? null,
+        recommendation: row.recommendation ?? null,
+        doorType: row.doorType ?? null,
+        costOfDelay: row.costOfDelay ?? null,
+        deadline: row.deadline ?? null,
+      },
+      row.createdAt,
+    )
   ) {
     tags.push("Incomplete brief");
   }

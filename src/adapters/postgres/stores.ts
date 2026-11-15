@@ -72,6 +72,7 @@ export class PostgresDecisionSource implements DecisionSource {
         source: input.source ?? raised?.name ?? null,
         reply: null,
         lastUpdated: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         raisedBy: raised,
         lastChoice: null,
       },
@@ -81,13 +82,14 @@ export class PostgresDecisionSource implements DecisionSource {
     await (
       await pgPool()
     ).query(
-      `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json, brief_json)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+      `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json, brief_json, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
       [
         row.id, row.url, row.item, row.project, row.status, row.owner, row.ownerColor,
         row.decisionNeeded, row.nextStep, row.source, row.reply, row.lastUpdated, row.lastChoice,
         raised?.id ?? null, raised?.name ?? null, raised?.parentId ?? null, raised?.parentName ?? null, body,
         briefJsonOf(row),
+        row.createdAt ?? row.lastUpdated,
       ],
     );
     return row;

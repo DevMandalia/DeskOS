@@ -12,6 +12,7 @@ import {
   parseRaiseBrief,
   queueHeadline,
   resolveQueueSort,
+  showIncompleteBriefTag,
   startCtaLabel,
 } from "../contract";
 import { parseRaise } from "@/lib/raise";
@@ -203,6 +204,44 @@ describe("stakes formula", () => {
     const missing = { item: "m", lastUpdated: "2026-11-10", costOfDelay: null };
     const high = { item: "h", lastUpdated: "2026-11-10", costOfDelay: "high" as const };
     expect(compareWaiting(high, missing, "stakes", "2026-11-15")).toBeLessThan(0);
+  });
+});
+
+describe("incomplete brief tag cutoff", () => {
+  const incomplete = {
+    options: null,
+    recommendation: null,
+    doorType: null,
+    costOfDelay: null,
+    deadline: null,
+  };
+  const complete = {
+    options: ["Renew", "Lapse"],
+    recommendation: "Renew",
+    doorType: "two_way" as const,
+    costOfDelay: "low" as const,
+    deadline: "2026-12-01",
+  };
+
+  it("hides the tag on items raised before 2026-11-15", () => {
+    expect(showIncompleteBriefTag(incomplete, "2026-11-14T23:59:00-08:00")).toBe(false);
+    expect(showIncompleteBriefTag(incomplete, "2026-11-14")).toBe(false);
+    expect(showIncompleteBriefTag(incomplete, "2026-11-15T07:59:00.000Z")).toBe(false);
+  });
+
+  it("shows the tag on items raised on 2026-11-15 or later", () => {
+    expect(showIncompleteBriefTag(incomplete, "2026-11-15T00:00:00-08:00")).toBe(true);
+    expect(showIncompleteBriefTag(incomplete, "2026-11-15")).toBe(true);
+    expect(showIncompleteBriefTag(incomplete, "2026-11-16T12:00:00-08:00")).toBe(true);
+  });
+
+  it("hides the tag when created time is missing, even if the brief is incomplete", () => {
+    expect(showIncompleteBriefTag(incomplete, null)).toBe(false);
+    expect(showIncompleteBriefTag(incomplete, undefined)).toBe(false);
+  });
+
+  it("does not tag a complete brief raised today", () => {
+    expect(showIncompleteBriefTag(complete, "2026-11-15T12:00:00-08:00")).toBe(false);
   });
 });
 

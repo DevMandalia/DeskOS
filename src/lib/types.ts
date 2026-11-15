@@ -95,6 +95,8 @@ export type Decision = {
   source: string | null;
   reply: string | null;
   lastUpdated: string | null;
+  /** Page / row created time (ISO). Used to gate the Incomplete brief tag. */
+  createdAt?: string | null;
   raisedBy: AgentRef | null;
   /** Last recorded verdict choice, if any. */
   lastChoice: VerdictChoice | null;

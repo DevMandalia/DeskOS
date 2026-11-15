@@ -1,6 +1,6 @@
 /** Optional decision brief. All raise fields optional so old agents keep working. */
 
-import { isYmd, parseYmd } from "./dates";
+import { DEFAULT_TIMEZONE, isYmd, parseYmd, todayYmd } from "./dates";
 
 export const DOOR_TYPES = ["one_way", "two_way"] as const;
 export type DoorType = (typeof DOOR_TYPES)[number];
@@ -416,6 +416,29 @@ export function missingBriefFields(brief: Pick<DecisionBrief, "options" | "recom
 
 export function isIncompleteBrief(brief: Pick<DecisionBrief, "options" | "recommendation" | "doorType" | "costOfDelay" | "deadline">): boolean {
   return missingBriefFields(brief).length > 0;
+}
+
+/** First local day the Incomplete brief tag may appear. Items raised before this stay untagged. */
+export const INCOMPLETE_BRIEF_SINCE = "2026-11-15";
+
+export function raisedDay(createdAt: string | null | undefined, timeZone = DEFAULT_TIMEZONE): string | null {
+  if (!createdAt) return null;
+  if (isYmd(createdAt.slice(0, 10)) && createdAt.length === 10) return createdAt.slice(0, 10);
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return null;
+  return todayYmd(date, timeZone);
+}
+
+/** Incomplete brief only for items raised on INCOMPLETE_BRIEF_SINCE or later. Missing created time is treated as older. */
+export function showIncompleteBriefTag(
+  brief: Pick<DecisionBrief, "options" | "recommendation" | "doorType" | "costOfDelay" | "deadline">,
+  createdAt: string | null | undefined,
+  timeZone = DEFAULT_TIMEZONE,
+): boolean {
+  if (!isIncompleteBrief(brief)) return false;
+  const day = raisedDay(createdAt, timeZone);
+  if (!day) return false;
+  return day >= INCOMPLETE_BRIEF_SINCE;
 }
 
 export function briefHasContent(brief: DecisionBrief | null | undefined): boolean {

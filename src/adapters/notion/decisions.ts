@@ -251,6 +251,7 @@ export class NotionDecisionSource implements DecisionSource {
       source: plain(props[map.source]),
       reply: plain(props[map.reply]),
       lastUpdated: plain(props[map.updated]),
+      createdAt: typeof page.created_time === "string" ? page.created_time : null,
       raisedBy: name
         ? { id: stripId(name), name, parentId: plain(props[map.parent]), parentName: plain(props[map.parent]) }
         : null,

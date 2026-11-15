@@ -403,7 +403,8 @@ export function BoardView({ initial, initialError, today, storeLabel, wipLimit =
       </DndContext>
       <p className="board-foot">
         Drag a card to another column, or use its Move menu. Press <kbd>N</kbd> to add a task. Column names
-        come from your task store (or BOARD_COLUMNS).
+        come from your task store (or BOARD_COLUMNS). Edits made in Notion show up when you reload or press
+        Refresh.
       </p>
     </div>
   );

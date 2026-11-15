@@ -58,7 +58,8 @@ CREATE TABLE IF NOT EXISTS decisions (
   parent_id TEXT,
   parent_name TEXT,
   body_json TEXT,
-  brief_json TEXT
+  brief_json TEXT,
+  created_at TEXT
 );
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
@@ -142,6 +143,7 @@ export function decisionFromRow(row: Record<string, unknown>): Decision {
       source: (row.source as string | null) ?? null,
       reply,
       lastUpdated: (row.last_updated as string | null) ?? null,
+      createdAt: (row.created_at as string | null) ?? null,
       raisedBy: r,
       lastChoice,
     },
@@ -199,6 +201,9 @@ function ensureBriefColumn(db: DatabaseSync): void {
   if (!cols.some((col) => String(col.name) === "brief_json")) {
     db.exec("ALTER TABLE decisions ADD COLUMN brief_json TEXT");
   }
+  if (!cols.some((col) => String(col.name) === "created_at")) {
+    db.exec("ALTER TABLE decisions ADD COLUMN created_at TEXT");
+  }
 }
 
 function seedIfEmpty(db: DatabaseSync): void {
@@ -235,8 +240,8 @@ function seedIfEmpty(db: DatabaseSync): void {
       ? JSON.stringify([{ id: `${d.id}-p`, type: "paragraph", rich: spansFromPlain(bodies[d.id]) } satisfies DeskBlock])
       : null;
     db.prepare(
-      `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json, brief_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO decisions (id, url, item, project, status, owner, owner_color, decision_needed, next_step, source, reply, last_updated, last_choice, raised_by_id, raised_by_name, parent_id, parent_name, body_json, brief_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       d.id,
       d.url,
@@ -257,6 +262,7 @@ function seedIfEmpty(db: DatabaseSync): void {
       d.raisedBy?.parentName ?? null,
       body,
       briefJsonOf(d),
+      d.createdAt ?? d.lastUpdated,
     );
   }
   for (const t of demoTasks()) {
