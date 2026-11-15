@@ -1,0 +1,14 @@
+import Link from "next/link";
+
+export default function NotFound() {
+  return (
+    <main className="shell forbidden">
+      <p className="kicker">Decision Desk</p>
+      <h1>Not found</h1>
+      <p className="lede">That page is not on this desk.</p>
+      <p>
+        <Link href="/">Home</Link>
+      </p>
+    </main>
+  );
+}

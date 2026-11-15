@@ -1,0 +1,60 @@
+{
+  "manifest_version": "0.2",
+  "name": "decision-desk",
+  "display_name": "Decision Desk",
+  "version": "0.1.0",
+  "description": "Raise decisions, add tasks, list items, poll verdicts, and reply on a self-hosted Decision Desk.",
+  "author": {
+    "name": "Decision Desk contributors"
+  },
+  "license": "MIT",
+  "server": {
+    "type": "node",
+    "entry_point": "server.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server.mjs"],
+      "env": {
+        "DESK_URL": "${user_config.desk_url}",
+        "DESK_TOKEN": "${user_config.desk_token}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "raise_decision",
+      "description": "Create a decision that is waiting on the owner."
+    },
+    {
+      "name": "add_task",
+      "description": "Add a task to the board."
+    },
+    {
+      "name": "list_items",
+      "description": "List this agent's decisions and tasks."
+    },
+    {
+      "name": "get_verdict",
+      "description": "Poll a decision for the owner's verdict and discussion."
+    },
+    {
+      "name": "reply_discussion",
+      "description": "Reply in a Discuss thread when it is the agent's turn."
+    }
+  ],
+  "user_config": {
+    "desk_url": {
+      "type": "string",
+      "title": "Desk URL",
+      "description": "Origin of your self-hosted Decision Desk, e.g. http://127.0.0.1:3000",
+      "required": true
+    },
+    "desk_token": {
+      "type": "string",
+      "title": "Agent API key",
+      "description": "Per-agent key from Settings (ddk_…). Stored hashed on the desk.",
+      "sensitive": true,
+      "required": true
+    }
+  }
+}

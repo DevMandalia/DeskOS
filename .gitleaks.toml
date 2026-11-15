@@ -1,0 +1,11 @@
+title = "decision-desk"
+
+[allowlist]
+description = "Obviously fake demo keys and sample HMAC secrets"
+regexes = [
+  '''ddk_demo_[a-z0-9_]+_not_a_secret''',
+  '''whsec_test''',
+]
+paths = [
+  '''docs/.*''',
+]

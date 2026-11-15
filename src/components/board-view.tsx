@@ -1,0 +1,593 @@
+"use client";
+
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  type KeyboardCoordinateGetter,
+} from "@dnd-kit/core";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+
+import {
+  applyPatch,
+  buildLanes,
+  columnOf,
+  dueLabel,
+  LANE_LIMIT,
+  mergeBoard,
+  parseQuickAdd,
+  quickAddStatus,
+  resolveColumns,
+  type BoardLane,
+} from "@/lib/board";
+import { withBasePath } from "@/lib/base-path";
+import { isStaticDemo } from "@/lib/demo-mode";
+import { demoBoard, upsertDemoTask } from "@/lib/demo-store";
+import { raisedByLabel } from "@/lib/agent-ref";
+import type { BoardColumn, ColumnKey, Task, TaskBoard, TaskPatch } from "@/lib/tasks/types";
+
+const API = withBasePath("/api/tasks");
+
+type Props = {
+  initial: TaskBoard | null;
+  initialError: string | null;
+  today: string;
+  storeLabel: string;
+};
+
+/** Arrow keys jump a lifted card one column left or right (dnd-kit keyboard drag). */
+const columnJump: KeyboardCoordinateGetter = (event, { context }) => {
+  const { collisionRect, droppableRects, droppableContainers } = context;
+  if (!collisionRect) return undefined;
+  if (event.code !== "ArrowRight" && event.code !== "ArrowLeft") return undefined;
+  event.preventDefault();
+  const centers = droppableContainers
+    .getEnabled()
+    .map((c) => droppableRects.get(c.id))
+    .filter((r): r is NonNullable<typeof r> => Boolean(r))
+    .map((r) => r.left + r.width / 2)
+    .sort((a, b) => a - b);
+  const here = collisionRect.left + collisionRect.width / 2;
+  const target =
+    event.code === "ArrowRight" ? centers.find((x) => x > here + 4) : [...centers].reverse().find((x) => x < here - 4);
+  if (target === undefined) return undefined;
+  return { x: target - collisionRect.width / 2, y: collisionRect.top };
+};
+
+function isTyping(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  if (el.isContentEditable) return true;
+  return Boolean(el.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+export function BoardView({ initial, initialError, today, storeLabel }: Props) {
+  const [tasks, setTasks] = useState<Task[]>(initial?.tasks ?? []);
+  const [schema, setSchema] = useState(initial?.schema ?? { statusOptions: [], areaOptions: [] });
+  const [error, setError] = useState<string | null>(initialError);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [area, setArea] = useState<string>("");
+  const [dragging, setDragging] = useState<Task | null>(null);
+  const [synced, setSynced] = useState<string | null>(initial?.fetchedAt ?? null);
+  const pending = useRef(new Set<string>());
+  const tasksRef = useRef(tasks);
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+  const quickRef = useRef<HTMLInputElement | null>(null);
+
+  const [columns, setColumns] = useState<BoardColumn[]>(
+    initial?.columns?.length ? initial.columns : resolveColumns(schema.statusOptions),
+  );
+  const areas = useMemo(() => schema.areaOptions.map((o) => o.name), [schema.areaOptions]);
+  const [added, setAdded] = useState<ReadonlySet<string>>(() => new Set());
+  const lanes = useMemo(() => buildLanes(tasks, columns, area || null, added), [tasks, columns, area, added]);
+
+  const refresh = useCallback(async () => {
+    try {
+      if (isStaticDemo()) {
+        const body = demoBoard();
+        setSchema(body.schema);
+        setColumns(body.columns);
+        setTasks(body.tasks);
+        setSynced(body.fetchedAt);
+        setError(null);
+        return;
+      }
+      const res = await fetch(API, { cache: "no-store" });
+      const body = (await res.json()) as TaskBoard & { error?: string };
+      if (!res.ok) throw new Error(body.error ?? "Couldn't load the board.");
+      setSchema(body.schema);
+      if (body.columns?.length) setColumns(body.columns);
+      setTasks(mergeBoard(body, tasksRef.current, pending.current));
+      setSynced(body.fetchedAt);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't load the board.");
+    }
+  }, []);
+
+  // N focuses quick-add (not while typing elsewhere).
+  useEffect(() => {
+    function onKey(event: globalThis.KeyboardEvent) {
+      if (event.key !== "n" && event.key !== "N") return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (isTyping(event.target)) return;
+      event.preventDefault();
+      quickRef.current?.focus();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  const update = useCallback(async (task: Task, patch: TaskPatch, what: string) => {
+    const before = tasksRef.current.find((t) => t.id === task.id);
+    if (!before) return;
+    pending.current.add(task.id);
+    setTasks((all) => all.map((t) => (t.id === task.id ? applyPatch(t, patch) : t)));
+    setNotice(null);
+    try {
+      if (isStaticDemo()) {
+        const next = applyPatch(before, patch);
+        next.lastEdited = new Date().toISOString();
+        upsertDemoTask(next);
+        setTasks((all) => all.map((t) => (t.id === task.id ? next : t)));
+        setError(null);
+        return;
+      }
+      const res = await fetch(`${API}/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      const body = (await res.json()) as { task?: Task; error?: string };
+      if (!res.ok || !body.task) throw new Error(body.error ?? "That change didn't save.");
+      setTasks((all) => all.map((t) => (t.id === task.id ? body.task! : t)));
+      setError(null);
+    } catch (err) {
+      setTasks((all) => all.map((t) => (t.id === task.id ? before : t)));
+      setNotice(`${what} didn't save, so it's back where it was. ${err instanceof Error ? err.message : ""}`.trim());
+    } finally {
+      pending.current.delete(task.id);
+    }
+  }, []);
+
+  const move = useCallback(
+    (task: Task, key: ColumnKey) => {
+      const column = columns.find((c) => c.key === key);
+      if (!column?.status) {
+        setNotice(`Board has no "${column?.label ?? key}" status yet, so nothing moved.`);
+        return;
+      }
+      if (columnOf(task, columns) === key) return;
+      void update(task, { status: column.status }, `Moving "${task.title}"`);
+    },
+    [columns, update],
+  );
+
+  const add = useCallback(
+    async (text: string, pickedArea: string, due: string): Promise<boolean> => {
+      const status = quickAddStatus(columns);
+      const parsed = parseQuickAdd(text, areas);
+      if (!parsed.title || !status) return false;
+      const tempId = `tmp-${Date.now().toString(36)}`;
+      const temp: Task = {
+        id: tempId,
+        url: "",
+        title: parsed.title,
+        status,
+        area: parsed.area ?? (pickedArea || null),
+        areaColor: null,
+        due: due || null,
+        priority: null,
+        owner: null,
+        rank: null,
+        lastEdited: new Date().toISOString(),
+        raisedBy: null,
+      };
+      pending.current.add(tempId);
+      setAdded((s) => new Set(s).add(tempId));
+      setTasks((all) => [temp, ...all]);
+      setNotice(null);
+      try {
+        if (isStaticDemo()) {
+          const saved = { ...temp, id: crypto.randomUUID(), url: "/board" };
+          upsertDemoTask(saved);
+          setAdded((s) => new Set(s).add(saved.id));
+          setTasks((all) => all.map((t) => (t.id === tempId ? saved : t)));
+          return true;
+        }
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: temp.title, status, area: temp.area, due: temp.due }),
+        });
+        const body = (await res.json()) as { task?: Task; error?: string };
+        if (!res.ok || !body.task) throw new Error(body.error ?? "That task wasn't added.");
+        setAdded((s) => new Set(s).add(body.task!.id));
+        setTasks((all) => all.map((t) => (t.id === tempId ? body.task! : t)));
+        return true;
+      } catch (err) {
+        setTasks((all) => all.filter((t) => t.id !== tempId));
+        setNotice(`"${temp.title}" wasn't added. ${err instanceof Error ? err.message : ""}`.trim());
+        return false;
+      } finally {
+        pending.current.delete(tempId);
+      }
+    },
+    [columns, areas],
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: columnJump, scrollBehavior: "auto" }),
+  );
+
+  function onDragStart(event: DragStartEvent) {
+    setDragging(tasksRef.current.find((t) => t.id === event.active.id) ?? null);
+  }
+
+  function onDragEnd(event: DragEndEvent) {
+    const task = tasksRef.current.find((t) => t.id === event.active.id);
+    setDragging(null);
+    if (!task || !event.over) return;
+    move(task, event.over.id as ColumnKey);
+  }
+
+  const addTo = columns.find((c) => c.status === quickAddStatus(columns));
+  const shown = lanes.reduce((n, l) => n + l.tasks.length, 0);
+
+  return (
+    <div className="board">
+      <header className="desk-head board-head">
+        <h1>Board</h1>
+        <p className="desk-sub">
+          {shown} {shown === 1 ? "task" : "tasks"}
+          {area ? ` in ${area}` : ""} · {storeLabel}
+          {synced ? ` · checked ${new Date(synced).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
+        </p>
+      </header>
+
+      <QuickAdd inputRef={quickRef} areas={areas} target={addTo?.label ?? null} onAdd={add} disabled={!columns.some((c) => c.status)} />
+
+      <div className="board-tools">
+        <label className="board-filter">
+          <span>Area</span>
+          <select value={area} onChange={(e) => setArea(e.target.value)}>
+            <option value="">All areas</option>
+            {areas.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" className="text-btn board-refresh" onClick={() => void refresh()}>
+          Refresh
+        </button>
+      </div>
+
+      {error ? (
+        <div className="board-alert" role="alert">
+          {error}
+        </div>
+      ) : null}
+      {notice ? (
+        <div className="board-notice" role="status">
+          {notice}
+          <button type="button" className="text-btn" onClick={() => setNotice(null)}>
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
+      <DndContext id="hq-board" sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
+        <div className="board-lanes" role="list" aria-label="Task columns">
+          {lanes.map((lane) => (
+            <Lane key={lane.key} lane={lane} columns={columns} areas={areas} today={today} onMove={move} onEdit={update} />
+          ))}
+        </div>
+        <DragOverlay dropAnimation={null}>
+          {dragging ? <CardFace task={dragging} today={today} overlay /> : null}
+        </DragOverlay>
+      </DndContext>
+      <p className="board-foot">
+        Drag a card to another column, or use its Move menu. Press <kbd>N</kbd> to add a task. Column names
+        come from your task store (or BOARD_COLUMNS).
+      </p>
+    </div>
+  );
+}
+
+function QuickAdd({
+  inputRef,
+  areas,
+  target,
+  onAdd,
+  disabled,
+}: {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  areas: string[];
+  target: string | null;
+  onAdd: (text: string, area: string, due: string) => Promise<boolean>;
+  disabled: boolean;
+}) {
+  const [text, setText] = useState("");
+  const [area, setArea] = useState("");
+  const [due, setDue] = useState("");
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const value = text.trim();
+    if (!value) return;
+    setText("");
+    const ok = await onAdd(value, area, due);
+    if (ok) setDue("");
+    else setText((now) => now || value);
+    inputRef.current?.focus();
+  }
+
+  return (
+    <form className="quick-add" onSubmit={submit} aria-label="Quick add a task">
+      <label className="sr-only" htmlFor="quick-add-input">
+        New task
+      </label>
+      <input
+        id="quick-add-input"
+        ref={inputRef}
+        className="quick-add-input"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === "Escape") (e.target as HTMLInputElement).blur();
+        }}
+        placeholder="Add a task and press Enter"
+        autoComplete="off"
+        disabled={disabled}
+        aria-keyshortcuts="N"
+      />
+      <div className="quick-add-opts">
+        <label>
+          <span className="sr-only">Area (optional)</span>
+          <select value={area} onChange={(e) => setArea(e.target.value)} aria-label="Area (optional)">
+            <option value="">No area</option>
+            {areas.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className="sr-only">Due date (optional)</span>
+          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Due date (optional)" />
+        </label>
+        <button type="submit" className="quick-add-btn" disabled={disabled || !text.trim()}>
+          Add
+        </button>
+      </div>
+      <p className="quick-add-hint">
+        Goes to {target ?? "the board"}. Press <kbd>N</kbd> from anywhere on this page. Tag an area inline with{" "}
+        <code>#Ops</code>.
+      </p>
+    </form>
+  );
+}
+
+function Lane({
+  lane,
+  columns,
+  areas,
+  today,
+  onMove,
+  onEdit,
+}: {
+  lane: BoardLane;
+  columns: BoardColumn[];
+  areas: string[];
+  today: string;
+  onMove: (task: Task, key: ColumnKey) => void;
+  onEdit: (task: Task, patch: TaskPatch, what: string) => Promise<void>;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: lane.key, disabled: !lane.status });
+  const [all, setAll] = useState(false);
+  const visible = all ? lane.tasks : lane.tasks.slice(0, LANE_LIMIT);
+  return (
+    <section
+      ref={setNodeRef}
+      role="listitem"
+      className={`lane lane-${lane.key} ${isOver ? "lane-over" : ""} ${lane.status ? "" : "lane-off"}`}
+      aria-labelledby={`lane-${lane.key}`}
+      data-lane={lane.key}
+    >
+      <h2 className="lane-head" id={`lane-${lane.key}`}>
+        <span>{lane.label}</span>
+        <span className="lane-count">{lane.tasks.length}</span>
+      </h2>
+      {!lane.status ? (
+        <p className="lane-empty">
+          This board has no “{lane.label}” status yet. Add that status on the store, or drop BOARD_COLUMNS,
+          and this column starts taking cards.
+        </p>
+      ) : lane.tasks.length === 0 ? (
+        <p className="lane-empty">Nothing here.</p>
+      ) : null}
+      <ul className="lane-cards">
+        {visible.map((task) => (
+          <TaskCard key={task.id} task={task} columns={columns} areas={areas} today={today} onMove={onMove} onEdit={onEdit} />
+        ))}
+      </ul>
+      {lane.tasks.length > visible.length ? (
+        <button type="button" className="lane-more" onClick={() => setAll(true)}>
+          Show {lane.tasks.length - visible.length} more
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
+function CardFace({ task, today, overlay = false }: { task: Task; today: string; overlay?: boolean }) {
+  const due = dueLabel(task.due, today);
+  const meta = [task.area, raisedByLabel(task.raisedBy), task.priority].filter(Boolean);
+  return (
+    <div className={`task-face ${overlay ? "task-overlay" : ""}`}>
+      <p className="task-title">{task.title}</p>
+      {meta.length || due ? (
+        <p className="task-meta">
+          {meta.join(" · ")}
+          {due ? (
+            <>
+              {meta.length ? " · " : ""}
+              <span className={due.overdue ? "task-overdue" : ""}>{due.text}</span>
+            </>
+          ) : null}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function TaskCard({
+  task,
+  columns,
+  areas,
+  today,
+  onMove,
+  onEdit,
+}: {
+  task: Task;
+  columns: BoardColumn[];
+  areas: string[];
+  today: string;
+  onMove: (task: Task, key: ColumnKey) => void;
+  onEdit: (task: Task, patch: TaskPatch, what: string) => Promise<void>;
+}) {
+  const temp = task.id.startsWith("tmp-");
+  const [editing, setEditing] = useState(false);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, disabled: editing || temp });
+  const current = columnOf(task, columns);
+
+  return (
+    <li className={`task ${isDragging ? "task-dragging" : ""} ${temp ? "task-saving" : ""}`} data-task={task.id}>
+      {editing ? (
+        <TaskEditor
+          task={task}
+          areas={areas}
+          onCancel={() => setEditing(false)}
+          onSave={(patch) => {
+            setEditing(false);
+            if (Object.keys(patch).length) void onEdit(task, patch, `Editing "${task.title}"`);
+          }}
+        />
+      ) : (
+        <>
+          <div
+            ref={setNodeRef}
+            className="task-grab"
+            {...listeners}
+            {...attributes}
+            aria-roledescription="draggable task"
+            aria-label={`${task.title}. Press space to pick up, arrow keys to change column, space to drop.`}
+          >
+            <span className="task-grip" aria-hidden="true">
+              ⋮⋮
+            </span>
+            <CardFace task={task} today={today} />
+          </div>
+          <div className="task-actions">
+            <label className="task-move">
+              <span className="sr-only">Move {task.title} to</span>
+              <select
+                value={current}
+                disabled={temp}
+                onChange={(e) => onMove(task, e.target.value as ColumnKey)}
+                aria-label={`Move "${task.title}" to`}
+              >
+                {columns.map((c) => (
+                  <option key={c.key} value={c.key} disabled={!c.status}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" className="text-btn" disabled={temp} onClick={() => setEditing(true)}>
+              Edit
+            </button>
+            {task.url && task.url.startsWith("http") ? (
+              <a className="task-open" href={task.url} target="_blank" rel="noreferrer">
+                Open ↗
+              </a>
+            ) : null}
+          </div>
+        </>
+      )}
+    </li>
+  );
+}
+
+function TaskEditor({
+  task,
+  areas,
+  onCancel,
+  onSave,
+}: {
+  task: Task;
+  areas: string[];
+  onCancel: () => void;
+  onSave: (patch: TaskPatch) => void;
+}) {
+  const [title, setTitle] = useState(task.title);
+  const [area, setArea] = useState(task.area ?? "");
+  const [due, setDue] = useState(task.due?.slice(0, 10) ?? "");
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const patch: TaskPatch = {};
+    const t = title.replace(/\s+/g, " ").trim();
+    if (t && t !== task.title) patch.title = t;
+    if ((area || null) !== task.area) patch.area = area || null;
+    if ((due || null) !== (task.due?.slice(0, 10) ?? null)) patch.due = due || null;
+    onSave(patch);
+  }
+
+  return (
+    <form className="task-edit" onSubmit={submit} onKeyDown={(e) => e.key === "Escape" && onCancel()}>
+      <label>
+        <span className="task-edit-label">Title</span>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus required />
+      </label>
+      <label>
+        <span className="task-edit-label">Area</span>
+        <select value={area} onChange={(e) => setArea(e.target.value)}>
+          <option value="">No area</option>
+          {areas.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span className="task-edit-label">Due</span>
+        <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+      </label>
+      <div className="task-edit-actions">
+        <button type="submit" className="quick-add-btn">
+          Save
+        </button>
+        <button type="button" className="text-btn" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
