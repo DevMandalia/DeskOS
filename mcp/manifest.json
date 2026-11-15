@@ -2,7 +2,7 @@
   "manifest_version": "0.2",
   "name": "deskos",
   "display_name": "DeskOS",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Raise decisions, add tasks, list items, poll verdicts, and reply on a self-hosted DeskOS.",
   "author": {
     "name": "DeskOS contributors"
