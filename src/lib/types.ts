@@ -111,6 +111,13 @@ export type Decision = {
   splitSentBackAt?: string | null;
   revisitAt?: string | null;
   revisitState?: RevisitState | null;
+  agentTimeoutTagged?: boolean | null;
+  timeoutEligibleOverride?: boolean | null;
+  timeoutAppliedAt?: string | null;
+  timeoutAppliedChoice?: "Approve" | "Decline" | "Park" | null;
+  appliedBy?: "owner" | "timeout" | "auto" | null;
+  sessionCounted?: boolean | null;
+  batchKey?: string | null;
 };
 
 /** @deprecated Use Decision. */
@@ -135,6 +142,8 @@ export type DecisionCreate = {
   parentId?: string | null;
   needsSplit?: boolean | null;
   splitReason?: string | null;
+  agentTimeoutTagged?: boolean | null;
+  batchKey?: string | null;
 };
 
 export type DecisionVerdictInput = {
@@ -163,6 +172,13 @@ export type DecisionPatch = Partial<
     | "needsSplit"
     | "splitReason"
     | "splitSentBackAt"
+    | "agentTimeoutTagged"
+    | "timeoutEligibleOverride"
+    | "timeoutAppliedAt"
+    | "timeoutAppliedChoice"
+    | "appliedBy"
+    | "sessionCounted"
+    | "batchKey"
   >
 >;
 

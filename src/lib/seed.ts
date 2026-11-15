@@ -92,6 +92,7 @@ export function demoDecisions(): Decision[] {
       defaultIfNoAnswer: { choice: "Approve", note: "Renew for a year at $14" },
       deadline: "2026-12-01",
       needsSplit: false,
+      agentTimeoutTagged: true,
     },
     {
       id: DEMO_DECISION_IDS.hire,

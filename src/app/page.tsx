@@ -5,11 +5,26 @@ import { DecisionBrief } from "@/components/decision-brief";
 import { DecisionPanel } from "@/components/decision-panel";
 import { DemoDesk } from "@/components/demo-desk";
 import { DeskFrame } from "@/components/desk-frame";
+import { ContinueAnyway } from "@/components/session-strip";
 import { isStaticDemo } from "@/lib/demo-mode";
-import { defaultRevisitDate, parkRevisitDays, startCtaLabel, waitingListLabel } from "../../contract";
+import { STATUS } from "@/lib/decide";
+import { deskTimezone } from "@/lib/env";
+import { listSessionLines } from "@/lib/session-log";
+import {
+  defaultRevisitDate,
+  doneThisWeekCount,
+  parseSessionCap,
+  parkRevisitDays,
+  sessionForDay,
+  startCtaLabel,
+  timeoutClassOn,
+  timeoutNoticeTomorrow,
+  todayYmd,
+  waitingListLabel,
+} from "../../contract";
 import { BOARD_HREF, buildHome, decisionHref, deskHref, legacyListHref, type DeskScope } from "@/lib/nav";
 import { ageDays, cardAge, displayTitle, queueOrderHint, queueSort } from "@/lib/queue";
-import { listRows } from "@/lib/rows";
+import { listOwnerRows } from "@/lib/owner-rows";
 import { demoDecisions } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
 import { raisedByLabel } from "@/lib/agent-ref";
@@ -42,10 +57,16 @@ export default async function HomePage({
   if (legacy) redirect(legacy);
 
   const now = new Date();
-  const rows = await listRows();
+  const rows = await listOwnerRows();
   const home = buildHome(rows);
   const sort = queueSort();
   const next = home.next;
+  const today = todayYmd(now, deskTimezone());
+  const session = sessionForDay(await listSessionLines(), today, parseSessionCap(), deskTimezone());
+  const weekDone = doneThisWeekCount(rows, today, STATUS.done, deskTimezone());
+  const defaultsTomorrow = timeoutClassOn()
+    ? rows.filter((row) => timeoutNoticeTomorrow(row, today, STATUS.waiting, { classOn: true }))
+    : [];
   const oldestDays = next ? ageDays(next.lastUpdated, now) : null;
   const oldestAge =
     oldestDays === null
@@ -87,6 +108,7 @@ export default async function HomePage({
                 <Link href={c.href} className={`home-tile ${c.view === "waiting" ? "home-tile-wait" : ""}`}>
                   <span className="home-tile-count">{c.count}</span>
                   <span className="home-tile-label">{c.label}</span>
+                  {c.view === "done" ? <span className="home-tile-note">Done this week {weekDone}</span> : null}
                 </Link>
               </li>
             ))}
@@ -95,6 +117,49 @@ export default async function HomePage({
             <Link href={BOARD_HREF}>Your tasks are on the Board →</Link>
           </p>
         </section>
+
+        <section className="home-section" aria-labelledby="home-session">
+          <h2 id="home-session" className="home-h2">
+            Today
+          </h2>
+          <p className="desk-sub">
+            {session.complete
+              ? "Session complete."
+              : `${session.remaining} of ${session.cap} verdicts left in this session.`}
+          </p>
+          {session.doneToday.length === 0 ? (
+            <p className="empty">Nothing decided yet today.</p>
+          ) : (
+            <ol className="home-list">
+              {session.doneToday.map((line, i) => (
+                <li key={`${line.id}-${line.at}-${i}`}>
+                  <span className="home-item-title">{line.sentence}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+
+        {defaultsTomorrow.length > 0 ? (
+          <section className="home-section" aria-labelledby="home-defaults">
+            <h2 id="home-defaults" className="home-h2">
+              Defaults tomorrow
+            </h2>
+            <p className="desk-sub">If you don’t decide today, these take their stored default tomorrow.</p>
+            <ol className="home-list">
+              {defaultsTomorrow.map((row) => (
+                <li key={row.id}>
+                  <Link href={decisionHref(row.id, HOME_SCOPE)} className="home-item">
+                    <span className="home-item-title">{displayTitle(row.item)}</span>
+                    <span className="home-item-meta">
+                      Default {row.defaultIfNoAnswer?.choice} · {row.deadline}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
 
         {next ? (
           <section
@@ -111,12 +176,17 @@ export default async function HomePage({
             </p>
             <p className="verdict-need">{next.decisionNeeded ?? "No decision text on this row."}</p>
             <DecisionBrief row={next} essentialsOnly />
-            <DecisionPanel
-              row={next}
-              prevHref={null}
-              nextHref={null}
-              defaultParkDate={defaultRevisitDate(now, parkRevisitDays())}
-            />
+            {timeoutNoticeTomorrow(next, today, STATUS.waiting, { classOn: timeoutClassOn() }) ? (
+              <p className="decision-brief-note">This will be applied tomorrow unless you decide or extend the date.</p>
+            ) : null}
+            <ContinueAnyway complete={session.complete}>
+              <DecisionPanel
+                row={next}
+                prevHref={null}
+                nextHref={null}
+                defaultParkDate={defaultRevisitDate(now, parkRevisitDays())}
+              />
+            </ContinueAnyway>
           </section>
         ) : null}
 

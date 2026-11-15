@@ -693,6 +693,16 @@ a:hover {
   font-size: 12px;
 }
 
+.home-tile-note {
+  display: block;
+  font-size: 11px;
+  color: var(--ds-secondary);
+}
+
+.session-complete {
+  margin: 12px 0;
+}
+
 .home-object {
   margin: 0 0 28px;
   padding: 18px 18px 12px;
@@ -3282,6 +3292,19 @@ body {
 
 .task-saving {
   opacity: 0.7;
+}
+
+.task-focus {
+  border-color: var(--ds-teal);
+}
+
+.task-overflow {
+  border-style: dashed;
+}
+
+.task-overflow-badge {
+  font-size: 11px;
+  color: var(--ds-secondary);
 }
 
 .task-grab {

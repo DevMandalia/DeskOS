@@ -48,9 +48,12 @@ export function DecisionPanel({
   const [revisitAt, setRevisitAt] = useState(defaultParkDate ?? defaultRevisitDate());
   const expired = row.revisitState === "expired";
   const needsSplit = Boolean(row.needsSplit);
+  const reverseTimeout = row.appliedBy === "timeout" && row.status !== "Waiting on you";
   const undatedPark = row.status === "Parked" && !row.revisitAt && !expired;
   const parkLabel = expired ? "Keep parked" : undatedPark ? "Set date" : "Park";
-  const actions: { id: Action; label: string }[] = expired
+  const actions: { id: Action; label: string }[] = reverseTimeout
+    ? [{ id: "Reopen", label: "Reverse this default" }]
+    : expired
     ? [
         { id: "Park", label: parkLabel },
         { id: "Reopen", label: "Reopen" },
@@ -382,7 +385,11 @@ export function DecisionPanel({
               <p className="park-revisit-hint">Unlock Approve. This stays one card.</p>
             ) : null}
             {confirming === "Reopen" ? (
-              <p className="park-revisit-hint">Clears the park date and returns this to the ordinary waiting queue.</p>
+              <p className="park-revisit-hint">
+                {reverseTimeout
+                  ? "Returns this to Waiting. Work the agent already started is not undone."
+                  : "Clears the park date and returns this to the ordinary waiting queue."}
+              </p>
             ) : null}
             <div className="modal-actions">
               <button

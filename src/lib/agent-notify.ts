@@ -27,6 +27,7 @@ export type VerdictEvent = {
   revisit_state?: string | null;
   needs_split?: boolean | null;
   parent_id?: string | null;
+  applied_by?: "owner" | "timeout" | "auto" | null;
 };
 
 export type SplitRequestEvent = {
@@ -69,6 +70,7 @@ export function verdictEvent(
     revisit_state: brief.revisit_state,
     needs_split: brief.needs_split,
     parent_id: brief.parent_id,
+    applied_by: brief.applied_by ?? row.appliedBy ?? null,
   };
 }
 

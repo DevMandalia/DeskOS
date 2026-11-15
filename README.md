@@ -87,6 +87,12 @@ Pick adapters with env vars. **Nothing in `src/lib`, `src/app`, or `src/componen
 | `NEXT_PUBLIC_BASE_PATH` | e.g. `/DeskOS` | empty (site root) |
 | `QUEUE_SORT` | `stakes` \| `age` | `stakes` (`age` is oldest first) |
 | `PARK_REVISIT_DAYS` | days until a new Park asks again (existing Parked rows are not rewritten) | `14` |
+| `TIMEOUT_DEFAULTS` | `off` \| `two_way+low` | `off` |
+| `BOARD_WIP_LIMIT` | doing-column cap | `3` |
+| `BOARD_WIP_ENFORCE` | `confirm` \| `block` \| `off` | `confirm` |
+| `SESSION_CAP` | daily counted verdicts | `5` |
+| `AUTO_APPROVE` | master switch for learned classes | `off` |
+| `CHAT_REVISIT_DAYS` | come-back for open chats | `3` |
 
 Notion is an **optional example** adapter (`adapters/notion`). See `adapters/notion/README.md`.
 

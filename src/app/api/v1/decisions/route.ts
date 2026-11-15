@@ -3,7 +3,7 @@ import { isAgent, requireAgent } from "@/app/api/v1/auth";
 import { agentRef } from "@/lib/agent-ref";
 import { STATUS } from "@/lib/decide";
 import { parseRaise, type RaiseBody } from "@/lib/raise";
-import { compareWaiting, parseQueueSort, todayYmd } from "@/lib/desk-contract";
+import { agentTaggedTimeoutFields, compareWaiting, parseQueueSort, todayYmd } from "@/lib/desk-contract";
 import { deskTimezone } from "@/lib/env";
 import { decisionSource } from "@/lib/rows";
 import type { Decision } from "@/lib/types";
@@ -94,6 +94,7 @@ export async function POST(request: Request) {
     parentId: parsed.parentId,
     needsSplit: parsed.brief.needsSplit,
     splitReason: parsed.brief.splitReason,
+    agentTimeoutTagged: agentTaggedTimeoutFields(parsed.brief),
   });
   return Response.json({ decision: row }, { status: 201 });
 }

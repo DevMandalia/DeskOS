@@ -28,6 +28,14 @@ import {
   resolveColumns,
   type BoardLane,
 } from "@/lib/board";
+import {
+  doingCount,
+  findDoingColumn,
+  isDoingStatus,
+  overflowIndex,
+  wipMoveCheck,
+  type WipEnforce,
+} from "../../contract";
 import { withBasePath } from "@/lib/base-path";
 import { isStaticDemo } from "@/lib/demo-mode";
 import { demoBoard, upsertDemoTask } from "@/lib/demo-store";
@@ -41,6 +49,8 @@ type Props = {
   initialError: string | null;
   today: string;
   storeLabel: string;
+  wipLimit?: number;
+  wipEnforce?: WipEnforce;
 };
 
 /** Arrow keys jump a lifted card one column left or right (dnd-kit keyboard drag). */
@@ -69,11 +79,19 @@ function isTyping(target: EventTarget | null): boolean {
   return Boolean(el.closest("input, textarea, select, [contenteditable='true']"));
 }
 
-export function BoardView({ initial, initialError, today, storeLabel }: Props) {
+export function BoardView({ initial, initialError, today, storeLabel, wipLimit = 3, wipEnforce = "confirm" }: Props) {
   const [tasks, setTasks] = useState<Task[]>(initial?.tasks ?? []);
   const [schema, setSchema] = useState(initial?.schema ?? { statusOptions: [], areaOptions: [] });
   const [error, setError] = useState<string | null>(initialError);
   const [notice, setNotice] = useState<string | null>(null);
+  const [wipConfirm, setWipConfirm] = useState<{ task: Task; status: string } | null>(null);
+  const [focusId, setFocusId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("desk-focused-task-id");
+    } catch {
+      return null;
+    }
+  });
   const [area, setArea] = useState<string>("");
   const [dragging, setDragging] = useState<Task | null>(null);
   const [synced, setSynced] = useState<string | null>(initial?.fetchedAt ?? null);
@@ -89,7 +107,26 @@ export function BoardView({ initial, initialError, today, storeLabel }: Props) {
   );
   const areas = useMemo(() => schema.areaOptions.map((o) => o.name), [schema.areaOptions]);
   const [added, setAdded] = useState<ReadonlySet<string>>(() => new Set());
-  const lanes = useMemo(() => buildLanes(tasks, columns, area || null, added), [tasks, columns, area, added]);
+  const doing = findDoingColumn(columns);
+  const inProgress = doingCount(tasks, doing);
+  const activeFocus =
+    focusId && doing && isDoingStatus(tasks.find((t) => t.id === focusId)?.status, doing) ? focusId : null;
+  const focused = useMemo(() => {
+    const set = new Set(added);
+    if (activeFocus) set.add(activeFocus);
+    return set;
+  }, [added, activeFocus]);
+  const lanes = useMemo(() => buildLanes(tasks, columns, area || null, focused), [tasks, columns, area, focused]);
+
+  const pin = useCallback((id: string | null) => {
+    setFocusId(id);
+    try {
+      if (id) localStorage.setItem("desk-focused-task-id", id);
+      else localStorage.removeItem("desk-focused-task-id");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -161,16 +198,28 @@ export function BoardView({ initial, initialError, today, storeLabel }: Props) {
   }, []);
 
   const move = useCallback(
-    (task: Task, key: ColumnKey) => {
+    (task: Task, key: ColumnKey, confirmed = false) => {
       const column = columns.find((c) => c.key === key);
       if (!column?.status) {
         setNotice(`Board has no "${column?.label ?? key}" status yet, so nothing moved.`);
         return;
       }
       if (columnOf(task, columns) === key) return;
+      const check = wipMoveCheck(tasksRef.current, task.id, column.status, doing, {
+        BOARD_WIP_LIMIT: String(wipLimit),
+        BOARD_WIP_ENFORCE: wipEnforce,
+      });
+      if (check.over && wipEnforce === "block") {
+        setNotice(`${check.nextCount - 1} are already in progress. Move one out first.`);
+        return;
+      }
+      if (check.over && wipEnforce === "confirm" && !confirmed) {
+        setWipConfirm({ task, status: column.status });
+        return;
+      }
       void update(task, { status: column.status }, `Moving "${task.title}"`);
     },
-    [columns, update],
+    [columns, doing, update, wipEnforce, wipLimit],
   );
 
   const add = useCallback(
@@ -254,9 +303,33 @@ export function BoardView({ initial, initialError, today, storeLabel }: Props) {
           {shown} {shown === 1 ? "task" : "tasks"}
           {area ? ` in ${area}` : ""} · {storeLabel}
           {synced ? ` · checked ${new Date(synced).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
+          {doing ? ` · ${doing.label} ${inProgress} / limit ${wipLimit}` : ""}
         </p>
       </header>
 
+      {wipConfirm ? (
+        <div className="modal-back" role="presentation" onClick={() => setWipConfirm(null)}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <h2>{inProgress} are already in progress. Move one out, or confirm overflow.</h2>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-approve"
+                onClick={() => {
+                  const pendingMove = wipConfirm;
+                  setWipConfirm(null);
+                  void update(pendingMove.task, { status: pendingMove.status }, `Moving "${pendingMove.task.title}"`);
+                }}
+              >
+                Confirm overflow
+              </button>
+              <button type="button" className="btn btn-discuss" onClick={() => setWipConfirm(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <QuickAdd inputRef={quickRef} areas={areas} target={addTo?.label ?? null} onAdd={add} disabled={!columns.some((c) => c.status)} />
 
       <div className="board-tools">
@@ -293,7 +366,19 @@ export function BoardView({ initial, initialError, today, storeLabel }: Props) {
       <DndContext id="hq-board" sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
         <div className="board-lanes" role="list" aria-label="Task columns">
           {lanes.map((lane) => (
-            <Lane key={lane.key} lane={lane} columns={columns} areas={areas} today={today} onMove={move} onEdit={update} />
+            <Lane
+              key={lane.key}
+              lane={lane}
+              columns={columns}
+              areas={areas}
+              today={today}
+              onMove={move}
+              onEdit={update}
+              doing={doing}
+              focusId={activeFocus}
+              onPin={pin}
+              wipLimit={wipLimit}
+            />
           ))}
         </div>
         <DragOverlay dropAnimation={null}>
@@ -390,6 +475,10 @@ function Lane({
   today,
   onMove,
   onEdit,
+  doing,
+  focusId,
+  onPin,
+  wipLimit,
 }: {
   lane: BoardLane;
   columns: BoardColumn[];
@@ -397,10 +486,15 @@ function Lane({
   today: string;
   onMove: (task: Task, key: ColumnKey) => void;
   onEdit: (task: Task, patch: TaskPatch, what: string) => Promise<void>;
+  doing: BoardColumn | null;
+  focusId: string | null;
+  onPin: (id: string | null) => void;
+  wipLimit: number;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: lane.key, disabled: !lane.status });
   const [all, setAll] = useState(false);
-  const visible = all ? lane.tasks : lane.tasks.slice(0, LANE_LIMIT);
+  const isDoingLane = Boolean(doing && (lane.key === doing.key || lane.status === doing.status));
+  const visible = all || isDoingLane ? lane.tasks : lane.tasks.slice(0, LANE_LIMIT);
   return (
     <section
       ref={setNodeRef}
@@ -419,11 +513,27 @@ function Lane({
           and this column starts taking cards.
         </p>
       ) : lane.tasks.length === 0 ? (
-        <p className="lane-empty">Nothing here.</p>
+        <p className="lane-empty">
+          {/to do|todo|ready/i.test(lane.label)
+            ? "Nothing is ready. Pull from Backlog, or leave this as the ready list."
+            : "Nothing here."}
+        </p>
       ) : null}
       <ul className="lane-cards">
-        {visible.map((task) => (
-          <TaskCard key={task.id} task={task} columns={columns} areas={areas} today={today} onMove={onMove} onEdit={onEdit} />
+        {visible.map((task, index) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            columns={columns}
+            areas={areas}
+            today={today}
+            onMove={onMove}
+            onEdit={onEdit}
+            focused={task.id === focusId}
+            overflow={isDoingLane && overflowIndex(index, task.id === focusId, wipLimit)}
+            canPin={isDoingLane}
+            onPin={onPin}
+          />
         ))}
       </ul>
       {lane.tasks.length > visible.length ? (
@@ -463,6 +573,10 @@ function TaskCard({
   today,
   onMove,
   onEdit,
+  focused = false,
+  overflow = false,
+  canPin = false,
+  onPin,
 }: {
   task: Task;
   columns: BoardColumn[];
@@ -470,6 +584,10 @@ function TaskCard({
   today: string;
   onMove: (task: Task, key: ColumnKey) => void;
   onEdit: (task: Task, patch: TaskPatch, what: string) => Promise<void>;
+  focused?: boolean;
+  overflow?: boolean;
+  canPin?: boolean;
+  onPin?: (id: string | null) => void;
 }) {
   const temp = task.id.startsWith("tmp-");
   const [editing, setEditing] = useState(false);
@@ -477,7 +595,10 @@ function TaskCard({
   const current = columnOf(task, columns);
 
   return (
-    <li className={`task ${isDragging ? "task-dragging" : ""} ${temp ? "task-saving" : ""}`} data-task={task.id}>
+    <li
+      className={`task ${isDragging ? "task-dragging" : ""} ${temp ? "task-saving" : ""} ${focused ? "task-focus" : ""} ${overflow ? "task-overflow" : ""}`}
+      data-task={task.id}
+    >
       {editing ? (
         <TaskEditor
           task={task}
@@ -519,6 +640,17 @@ function TaskCard({
                 ))}
               </select>
             </label>
+            {canPin && onPin ? (
+              <button
+                type="button"
+                className="text-btn"
+                disabled={temp}
+                onClick={() => onPin(focused ? null : task.id)}
+              >
+                {focused ? "Unpin" : "Focus"}
+              </button>
+            ) : null}
+            {overflow ? <span className="task-overflow-badge">Overflow</span> : null}
             <button type="button" className="text-btn" disabled={temp} onClick={() => setEditing(true)}>
               Edit
             </button>

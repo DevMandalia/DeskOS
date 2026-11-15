@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { createWouldOverflow, findDoingColumn, parseWipLimit } from "@/lib/desk-contract";
 import { currentUser } from "@/lib/session";
 import { readPatch, taskError } from "@/lib/tasks/http";
 import { taskStore } from "@/lib/tasks/store";
@@ -28,13 +29,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A task needs a title.", code: "invalid" }, { status: 400 });
   }
   try {
-    const task = await (await taskStore()).create({
+    const store = await taskStore();
+    const board = await store.list();
+    const overflow = createWouldOverflow(
+      board.tasks,
+      patch.status,
+      findDoingColumn(board.columns),
+      parseWipLimit(),
+    );
+    const task = await store.create({
       title: patch.title,
       status: patch.status,
       area: patch.area,
       due: patch.due,
     });
-    return NextResponse.json({ task }, { status: 201 });
+    return NextResponse.json({ task, overflow: overflow || undefined }, { status: 201 });
   } catch (err) {
     return taskError(err);
   }

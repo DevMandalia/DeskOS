@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { findDoingColumn, parseWipEnforce, wipMoveCheck } from "@/lib/desk-contract";
 import { currentUser } from "@/lib/session";
 import { readPatch, taskError } from "@/lib/tasks/http";
 import { taskStore } from "@/lib/tasks/store";
@@ -19,7 +20,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const patch = readPatch(body);
   if (!patch) return NextResponse.json({ error: "Nothing to change.", code: "invalid" }, { status: 400 });
   try {
-    return NextResponse.json({ task: await (await taskStore()).update(id, patch) });
+    const store = await taskStore();
+    if (patch.status && parseWipEnforce() === "block") {
+      const board = await store.list();
+      const doing = findDoingColumn(board.columns);
+      const check = wipMoveCheck(board.tasks, id, patch.status, doing);
+      if (check.over) {
+        return NextResponse.json(
+          { error: `${check.nextCount - 1} are already in progress. Move one out first.`, code: "wip" },
+          { status: 409 },
+        );
+      }
+    }
+    return NextResponse.json({ task: await store.update(id, patch) });
   } catch (err) {
     return taskError(err);
   }

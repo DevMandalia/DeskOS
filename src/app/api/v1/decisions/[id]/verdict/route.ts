@@ -40,5 +40,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     split_sent_back_at: brief.split_sent_back_at,
     revisit_at: brief.revisit_at,
     revisit_state: brief.revisit_state,
+    applied_by: brief.applied_by ?? row.appliedBy ?? null,
+    timeout_applied_at: brief.timeout_applied_at ?? row.timeoutAppliedAt ?? null,
   });
 }

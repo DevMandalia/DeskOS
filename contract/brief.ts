@@ -40,6 +40,13 @@ export type DecisionBrief = {
   splitSentBackAt: string | null;
   revisitAt: string | null;
   revisitState: "scheduled" | "expired" | null;
+  agentTimeoutTagged: boolean | null;
+  timeoutEligibleOverride: boolean | null;
+  timeoutAppliedAt: string | null;
+  timeoutAppliedChoice: DefaultChoice | null;
+  appliedBy: "owner" | "timeout" | "auto" | null;
+  sessionCounted: boolean | null;
+  batchKey: string | null;
 };
 
 export const EMPTY_BRIEF: DecisionBrief = {
@@ -56,6 +63,13 @@ export const EMPTY_BRIEF: DecisionBrief = {
   splitSentBackAt: null,
   revisitAt: null,
   revisitState: null,
+  agentTimeoutTagged: null,
+  timeoutEligibleOverride: null,
+  timeoutAppliedAt: null,
+  timeoutAppliedChoice: null,
+  appliedBy: null,
+  sessionCounted: null,
+  batchKey: null,
 };
 
 export const INCOMPLETE_BRIEF_FIELDS = [
@@ -329,7 +343,28 @@ export function briefFromUnknown(raw: unknown): DecisionBrief {
       : null,
     revisitAt: parseYmd(src.revisitAt ?? src.revisit_at),
     revisitState,
+    agentTimeoutTagged: boolOrNull(src.agentTimeoutTagged ?? src.agent_timeout_tagged),
+    timeoutEligibleOverride: boolOrNull(src.timeoutEligibleOverride ?? src.timeout_eligible_override),
+    timeoutAppliedAt: present(src.timeoutAppliedAt ?? src.timeout_applied_at)
+      ? trimString(src.timeoutAppliedAt ?? src.timeout_applied_at)
+      : null,
+    timeoutAppliedChoice: isDefaultChoice(String(src.timeoutAppliedChoice ?? src.timeout_applied_choice ?? ""))
+      ? (src.timeoutAppliedChoice ?? src.timeout_applied_choice) as DefaultChoice
+      : null,
+    appliedBy:
+      src.appliedBy === "owner" || src.appliedBy === "timeout" || src.appliedBy === "auto"
+        ? src.appliedBy
+        : src.applied_by === "owner" || src.applied_by === "timeout" || src.applied_by === "auto"
+          ? src.applied_by
+          : null,
+    sessionCounted: boolOrNull(src.sessionCounted ?? src.session_counted),
+    batchKey: present(src.batchKey ?? src.batch_key) ? trimString(src.batchKey ?? src.batch_key) : null,
   };
+}
+
+function boolOrNull(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  return null;
 }
 
 export function parseBriefJson(raw: string | null | undefined): DecisionBrief {
@@ -406,6 +441,13 @@ export function briefFromRecord(input: {
   splitSentBackAt?: string | null;
   revisitAt?: string | null;
   revisitState?: "scheduled" | "expired" | null;
+  agentTimeoutTagged?: boolean | null;
+  timeoutEligibleOverride?: boolean | null;
+  timeoutAppliedAt?: string | null;
+  timeoutAppliedChoice?: DefaultChoice | null;
+  appliedBy?: "owner" | "timeout" | "auto" | null;
+  sessionCounted?: boolean | null;
+  batchKey?: string | null;
 }): DecisionBrief {
   const storedDefault =
     input.defaultIfNoAnswer ??
@@ -426,6 +468,13 @@ export function briefFromRecord(input: {
     splitSentBackAt: input.splitSentBackAt ?? null,
     revisitAt: input.revisitAt ?? null,
     revisitState: input.revisitState ?? null,
+    agentTimeoutTagged: input.agentTimeoutTagged ?? null,
+    timeoutEligibleOverride: input.timeoutEligibleOverride ?? null,
+    timeoutAppliedAt: input.timeoutAppliedAt ?? null,
+    timeoutAppliedChoice: input.timeoutAppliedChoice ?? null,
+    appliedBy: input.appliedBy ?? null,
+    sessionCounted: input.sessionCounted ?? null,
+    batchKey: input.batchKey ?? null,
   };
 }
 
@@ -443,6 +492,11 @@ export function snakeBrief(brief: DecisionBrief): {
   split_sent_back_at: string | null;
   revisit_at: string | null;
   revisit_state: "scheduled" | "expired" | null;
+  applied_by: "owner" | "timeout" | "auto" | null;
+  timeout_applied_at: string | null;
+  timeout_applied_choice: DefaultChoice | null;
+  timeout_eligible_override: boolean | null;
+  batch_key: string | null;
 } {
   return {
     options: brief.options,
@@ -458,6 +512,11 @@ export function snakeBrief(brief: DecisionBrief): {
     split_sent_back_at: brief.splitSentBackAt,
     revisit_at: brief.revisitAt,
     revisit_state: brief.revisitState,
+    applied_by: brief.appliedBy,
+    timeout_applied_at: brief.timeoutAppliedAt,
+    timeout_applied_choice: brief.timeoutAppliedChoice,
+    timeout_eligible_override: brief.timeoutEligibleOverride,
+    batch_key: brief.batchKey,
   };
 }
 

@@ -94,17 +94,19 @@ export function formatReply(
   choice: Action,
   note: string,
   at: Date,
-  extra?: { revisitAt?: string | null },
+  extra?: { revisitAt?: string | null; appliedBy?: "owner" | "timeout" | "auto" | null },
 ): string {
   const iso = formatIsoInZone(at);
   const trimmed = note.trim();
   const label = choice === "Split" ? "Send back to split" : choice === "OneDecision" ? "One decision" : choice;
   const revisit =
     choice === "Park" && extra?.revisitAt ? ` (revisit ${extra.revisitAt})` : "";
+  const how =
+    extra?.appliedBy === "timeout" ? ", default on timeout" : extra?.appliedBy === "auto" ? ", auto" : "";
   if (trimmed) {
-    return `${label} — ${trimmed}${revisit} (via DeskOS, ${iso})`;
+    return `${label} — ${trimmed}${revisit} (via DeskOS, ${iso}${how})`;
   }
-  return `${label} —${revisit} (via DeskOS, ${iso})`;
+  return `${label} —${revisit} (via DeskOS, ${iso}${how})`;
 }
 
 export function prependReply(

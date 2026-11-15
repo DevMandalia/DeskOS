@@ -7,7 +7,7 @@ import { DeskList } from "@/components/index-view";
 import { isStaticDemo } from "@/lib/demo-mode";
 import { deskHref, scopeRows, VIEW_LABEL, VIEW_SLUG, viewFromSlug, type DeskScope } from "@/lib/nav";
 import { deskOrder, parkedQueue, queueOrderHint, queueSort, waitingQueue } from "@/lib/queue";
-import { listRows } from "@/lib/rows";
+import { listOwnerRows } from "@/lib/owner-rows";
 import { demoDecisions } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
 
@@ -46,7 +46,7 @@ export default async function ViewPage({
     includeDone: query.done === "1",
   };
   const now = new Date();
-  const all = await listRows();
+  const all = await listOwnerRows();
   const visible = scopeRows(all, scope);
   const sort = queueSort();
   const rows =

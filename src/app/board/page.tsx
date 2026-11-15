@@ -5,10 +5,11 @@ import { DemoDesk } from "@/components/demo-desk";
 import { DeskFrame } from "@/components/desk-frame";
 import { boardToday } from "@/lib/board";
 import { isStaticDemo } from "@/lib/demo-mode";
-import { listRows } from "@/lib/rows";
+import { listOwnerRows } from "@/lib/owner-rows";
 import { demoDecisions } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
 import { taskStore } from "@/lib/tasks/store";
+import { parseWipEnforce, parseWipLimit } from "@/lib/desk-contract";
 import { TaskStoreError, type TaskBoard } from "@/lib/tasks/types";
 
 export const metadata: Metadata = { title: "Board" };
@@ -30,7 +31,7 @@ export default async function BoardPage() {
   const user = await requireUser();
   const store = await taskStore();
   const [rows, loaded] = await Promise.all([
-    listRows(),
+    listOwnerRows(),
     (async (): Promise<{ board: TaskBoard | null; error: string | null }> => {
       try {
         return { board: await store.list(), error: null };
@@ -50,6 +51,8 @@ export default async function BoardPage() {
         initialError={loaded.error}
         today={boardToday()}
         storeLabel={store.label}
+        wipLimit={parseWipLimit()}
+        wipEnforce={parseWipEnforce()}
       />
     </DeskFrame>
   );

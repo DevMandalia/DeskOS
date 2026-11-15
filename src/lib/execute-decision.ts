@@ -4,8 +4,13 @@ import { loadAgentStore } from "@/adapters/load";
 import { notifyAgent, notifyOwner, splitRequestEvent, verdictEvent } from "@/lib/agent-notify";
 import {
   appendOverride,
+  countsTowardSession,
   defaultRevisitDate,
   parkRevisitDays,
+  sessionSentence,
+  timeoutApplyPayload,
+  mayApplyTimeouts,
+  timeoutReadyToApply,
   todayYmd,
   validateCostOfDelay,
   validateDeadline,
@@ -13,6 +18,7 @@ import {
   validateParkDate,
   type BriefOverrideField,
 } from "../../contract";
+import { appendSessionLine } from "@/lib/session-log";
 import { deskTimezone } from "@/lib/env";
 import {
   SAVED_TOAST,
@@ -54,6 +60,8 @@ export async function executeDecision(input: {
   costOfDelay?: unknown;
   deadline?: unknown;
   action?: string | null;
+  appliedBy?: "owner" | "timeout" | "auto";
+  skipTimeoutSweep?: boolean;
 }): Promise<DecideResult> {
   const actionRaw = input.action ?? input.choice ?? "";
   const isOverrideOnly = !actionRaw && (input.doorType != null || input.costOfDelay != null || input.deadline != null);
@@ -97,6 +105,16 @@ export async function executeDecision(input: {
     return { ok: true, duplicate: false, row: next, toast: "Marked as one decision." };
   }
 
+  const appliedBy = input.appliedBy ?? "owner";
+  const keepParked = action === "Park" && row.revisitState === "expired";
+  const counted = countsTowardSession({
+    choice: action,
+    keepParked,
+    reopen: action === "Reopen",
+    split: false,
+    discuss: action === "Discuss",
+  });
+
   if (action === "Park") {
     const raw = input.revisitAt?.trim() || defaultRevisitDate(today, parkRevisitDays());
     const parsed = validateParkDate(raw, today);
@@ -106,6 +124,10 @@ export async function executeDecision(input: {
       lastChoice: "Park",
       revisitAt: parsed.value,
       revisitState: "scheduled",
+      appliedBy,
+      sessionCounted: counted,
+      timeoutAppliedAt: appliedBy === "timeout" ? at.toISOString() : row.timeoutAppliedAt ?? null,
+      timeoutAppliedChoice: appliedBy === "timeout" ? "Park" : row.timeoutAppliedChoice ?? null,
     });
   }
 
@@ -115,6 +137,8 @@ export async function executeDecision(input: {
       lastChoice: null,
       revisitAt: null,
       revisitState: null,
+      appliedBy: "owner",
+      sessionCounted: false,
     });
   }
 
@@ -124,6 +148,10 @@ export async function executeDecision(input: {
       lastChoice: "Decline",
       revisitAt: row.revisitAt ?? null,
       revisitState: row.revisitState ?? null,
+      appliedBy,
+      sessionCounted: counted,
+      timeoutAppliedAt: appliedBy === "timeout" ? at.toISOString() : row.timeoutAppliedAt ?? null,
+      timeoutAppliedChoice: appliedBy === "timeout" ? "Decline" : row.timeoutAppliedChoice ?? null,
     });
   }
 
@@ -131,6 +159,10 @@ export async function executeDecision(input: {
     return recordAction(row, "Approve", input.note, at, iso, key, {
       status: STATUS.inFlight,
       lastChoice: "Approve",
+      appliedBy,
+      sessionCounted: counted,
+      timeoutAppliedAt: appliedBy === "timeout" ? at.toISOString() : row.timeoutAppliedAt ?? null,
+      timeoutAppliedChoice: appliedBy === "timeout" ? "Approve" : row.timeoutAppliedChoice ?? null,
     });
   }
 
@@ -184,7 +216,10 @@ async function recordAction(
   patch: DecisionPatch,
 ): Promise<DecideResult> {
   const source = await decisionSource();
-  const line = formatReply(action, note, at, { revisitAt: patch.revisitAt ?? null });
+  const line = formatReply(action, note, at, {
+    revisitAt: patch.revisitAt ?? null,
+    appliedBy: patch.appliedBy ?? null,
+  });
   const reply = prependReply(row.reply, line);
   const lastUpdated = at.toISOString();
   const storedChoice = isChoice(action) ? action : (patch.lastChoice ?? row.lastChoice);
@@ -203,6 +238,21 @@ async function recordAction(
     lastUpdated,
     lastChoice: storedChoice,
   });
+  await appendSessionLine({
+    id: extra.id,
+    item: extra.item,
+    choice: action,
+    appliedBy: extra.appliedBy ?? patch.appliedBy ?? "owner",
+    at: lastUpdated,
+    sentence: sessionSentence({
+      choice: action,
+      item: extra.item,
+      appliedBy: extra.appliedBy ?? patch.appliedBy ?? null,
+      revisitAt: extra.revisitAt ?? null,
+      reversed: action === "Reopen" && row.appliedBy === "timeout",
+    }),
+    counts: Boolean(patch.sessionCounted),
+  });
   if (key && source.rememberIdempotencyKey) await source.rememberIdempotencyKey(key);
   const event = verdictEvent(extra, action, note.trim(), iso, {
     revisit_at: extra.revisitAt ?? null,
@@ -214,6 +264,28 @@ async function recordAction(
   }
   await notifyOwner(event);
   return { ok: true, duplicate: false, row: extra, toast: SAVED_TOAST };
+}
+
+export async function applyDueTimeouts(rows: BriefRow[]): Promise<BriefRow[]> {
+  if (!mayApplyTimeouts()) return rows;
+  const today = todayYmd(new Date(), deskTimezone());
+  const out = [...rows];
+  for (let i = 0; i < out.length; i++) {
+    const row = out[i];
+    if (!timeoutReadyToApply(row, today, STATUS.waiting, { classOn: true })) continue;
+    const payload = timeoutApplyPayload(row, today, new Date().toISOString());
+    if (!payload) continue;
+    const result = await executeDecision({
+      rowId: row.id,
+      choice: payload.choice,
+      note: payload.note,
+      appliedBy: "timeout",
+      skipTimeoutSweep: true,
+      revisitAt: payload.revisitAt,
+    });
+    if (result.ok) out[i] = result.row;
+  }
+  return out;
 }
 
 async function sendBackToSplit(

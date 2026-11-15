@@ -44,6 +44,13 @@ describe("formatReply", () => {
     );
   });
 
+  it("stamps default on timeout", () => {
+    const at = new Date("2026-11-13T18:18:22.000Z");
+    expect(formatReply("Approve", "Renew", at, { appliedBy: "timeout" })).toContain(
+      "default on timeout",
+    );
+  });
+
   it("stamps a Park revisit date", () => {
     const at = new Date("2026-11-13T18:18:22.000Z");
     expect(formatReply("Park", "hold", at, { revisitAt: "2026-12-13" })).toContain(

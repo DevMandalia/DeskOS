@@ -20,7 +20,8 @@ import {
 } from "@/lib/nav";
 import { defaultRevisitDate, parkRevisitDays } from "../../../../contract";
 import { cardAge, deskOrder, displayTitle } from "@/lib/queue";
-import { getRow, getRowBody, listDiscussion, listRows, neighbors } from "@/lib/rows";
+import { getOwnerRow, listOwnerRows } from "@/lib/owner-rows";
+import { getRowBody, listDiscussion, neighbors } from "@/lib/rows";
 import { DEMO_DECISION_IDS, demoDecisions } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
 
@@ -53,10 +54,10 @@ export default async function DecisionPage({
 
   const user = await requireUser();
   const area = scope.area;
-  const row = await getRow(id);
+  const row = await getOwnerRow(id);
   if (!row) notFound();
 
-  const rows = await listRows();
+  const rows = await listOwnerRows();
   const ordered = deskOrder(scopeRows(rows, scope));
   const { prev, next } = neighbors(ordered, row.id);
   const index = ordered.findIndex((r) => r.id === row.id);

@@ -23,6 +23,13 @@ export function briefOf(input: DecisionCreate | Decision): DecisionBrief {
     splitSentBackAt: "splitSentBackAt" in input ? input.splitSentBackAt : undefined,
     revisitAt: "revisitAt" in input ? input.revisitAt : null,
     revisitState: "revisitState" in input ? input.revisitState : null,
+    agentTimeoutTagged: "agentTimeoutTagged" in input ? input.agentTimeoutTagged : null,
+    timeoutEligibleOverride: "timeoutEligibleOverride" in input ? input.timeoutEligibleOverride : null,
+    timeoutAppliedAt: "timeoutAppliedAt" in input ? input.timeoutAppliedAt : null,
+    timeoutAppliedChoice: "timeoutAppliedChoice" in input ? input.timeoutAppliedChoice : null,
+    appliedBy: "appliedBy" in input ? input.appliedBy : null,
+    sessionCounted: "sessionCounted" in input ? input.sessionCounted : null,
+    batchKey: "batchKey" in input ? input.batchKey : null,
   });
 }
 
@@ -42,6 +49,13 @@ export function withBrief<T extends Decision>(row: T, brief: DecisionBrief): T {
     splitSentBackAt: brief.splitSentBackAt,
     revisitAt: brief.revisitAt,
     revisitState: brief.revisitState,
+    agentTimeoutTagged: brief.agentTimeoutTagged,
+    timeoutEligibleOverride: brief.timeoutEligibleOverride,
+    timeoutAppliedAt: brief.timeoutAppliedAt,
+    timeoutAppliedChoice: brief.timeoutAppliedChoice,
+    appliedBy: brief.appliedBy,
+    sessionCounted: brief.sessionCounted,
+    batchKey: brief.batchKey,
   };
 }
 

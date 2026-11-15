@@ -1,5 +1,12 @@
 import { BriefOverrides } from "@/components/brief-overrides";
-import { isIncompleteBrief, isOverdueYmd, splitReasonLabel, todayYmd } from "../../contract";
+import {
+  isIncompleteBrief,
+  isOverdueYmd,
+  splitReasonLabel,
+  timeoutClassOn,
+  timeoutNoticeTomorrow,
+  todayYmd,
+} from "../../contract";
 import type { BriefRow } from "@/lib/types";
 
 const DOOR_LABEL = {
@@ -21,7 +28,7 @@ export function parkRevisitLabel(
   return row.revisitAt ? `Revisit ${row.revisitAt}` : "No revisit date";
 }
 
-export function decisionTags(row: BriefRow, today = todayYmd()): string[] {
+export function decisionTags(row: BriefRow, today = todayYmd(), waitingStatus = "Waiting on you"): string[] {
   const tags: string[] = [];
   if (row.revisitState === "expired") tags.push("Revisit");
   if (row.needsSplit) tags.push("Needs split");
@@ -37,13 +44,20 @@ export function decisionTags(row: BriefRow, today = todayYmd()): string[] {
     tags.push("Incomplete brief");
   }
   if (isOverdueYmd(row.deadline ?? null, today)) tags.push("Overdue");
+  if (
+    timeoutClassOn() &&
+    timeoutNoticeTomorrow(row, today, waitingStatus, { classOn: true })
+  ) {
+    tags.push("Defaults tomorrow");
+  }
+  if (row.appliedBy === "timeout") tags.push("Default on timeout");
   if (row.costOfDelay) tags.push(`${COST_LABEL[row.costOfDelay]} delay`);
   if (row.doorType) tags.push(row.doorType === "one_way" ? "One-way" : "Two-way");
   return tags;
 }
 
-export function DecisionTags({ row }: { row: BriefRow }) {
-  const tags = decisionTags(row);
+export function DecisionTags({ row, waitingStatus }: { row: BriefRow; waitingStatus?: string }) {
+  const tags = decisionTags(row, todayYmd(), waitingStatus);
   if (tags.length === 0) return null;
   return (
     <ul className="decision-tags">
@@ -57,7 +71,15 @@ export function DecisionTags({ row }: { row: BriefRow }) {
 }
 
 /** Brief fields above the verdict buttons. */
-export function DecisionBrief({ row, essentialsOnly = false }: { row: BriefRow; essentialsOnly?: boolean }) {
+export function DecisionBrief({
+  row,
+  essentialsOnly = false,
+  waitingStatus = "Waiting on you",
+}: {
+  row: BriefRow;
+  essentialsOnly?: boolean;
+  waitingStatus?: string;
+}) {
   const park = parkRevisitLabel(row);
   const def = row.defaultIfNoAnswer;
   const showDefault = Boolean(def && row.deadline);
@@ -73,7 +95,7 @@ export function DecisionBrief({ row, essentialsOnly = false }: { row: BriefRow; 
     }
     return (
       <div className="decision-brief decision-brief-lite">
-        <DecisionTags row={row} />
+        <DecisionTags row={row} waitingStatus={waitingStatus} />
         {row.doorType || row.costOfDelay || row.deadline ? (
           <dl>
             {row.doorType ? (
@@ -103,10 +125,19 @@ export function DecisionBrief({ row, essentialsOnly = false }: { row: BriefRow; 
 
   return (
     <div className="decision-brief">
-      <DecisionTags row={row} />
+      <DecisionTags row={row} waitingStatus={waitingStatus} />
       {row.needsSplit ? <p className="decision-brief-note">{splitReasonLabel(row.splitReason)}</p> : null}
       {row.revisitState === "expired" ? (
         <p className="decision-brief-note">Revisit — date passed{row.revisitAt ? ` (${row.revisitAt})` : ""}.</p>
+      ) : null}
+      {timeoutClassOn() && timeoutNoticeTomorrow(row, todayYmd(), waitingStatus, { classOn: true }) ? (
+        <p className="decision-brief-note">This will be applied tomorrow unless you decide or extend the date.</p>
+      ) : null}
+      {row.appliedBy === "timeout" ? (
+        <p className="decision-brief-note">
+          Decided in your absence{row.timeoutAppliedChoice ? ` (${row.timeoutAppliedChoice})` : ""}. Reverse this default
+          to send it back to Waiting.
+        </p>
       ) : null}
       <dl>
         {row.options?.length ? (

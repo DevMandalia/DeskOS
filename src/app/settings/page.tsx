@@ -4,7 +4,7 @@ import { SettingsAgents } from "@/components/settings-agents";
 import { loadAgentStore } from "@/adapters/load";
 import { publicAgent } from "@/lib/agent-ref";
 import { isStaticDemo } from "@/lib/demo-mode";
-import { listRows } from "@/lib/rows";
+import { listOwnerRows } from "@/lib/owner-rows";
 import { demoDecisions } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
 
@@ -24,13 +24,16 @@ export default async function SettingsPage() {
   }
 
   const user = await requireUser();
-  const [rows, agents] = await Promise.all([listRows(), (await loadAgentStore()).list()]);
+  const [rows, agents] = await Promise.all([listOwnerRows(), (await loadAgentStore()).list()]);
   return (
     <DeskFrame email={user.email} rows={rows} scope={{ area: null, view: "waiting", includeDone: false }}>
       <div className="desk">
         <header className="desk-head">
           <h1>Settings</h1>
-          <p className="desk-sub">API keys for agents. Each key is shown once. Stored hashed.</p>
+          <p className="desk-sub">
+            API keys for agents. Each key is shown once. Stored hashed. Timeout defaults stay off until
+            TIMEOUT_DEFAULTS=two_way+low. Auto-approve stays off.
+          </p>
         </header>
         <SettingsAgents initial={agents.map(publicAgent)} />
       </div>

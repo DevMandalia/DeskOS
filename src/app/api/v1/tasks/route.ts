@@ -1,5 +1,6 @@
 import { loadAgentStore, loadTaskStore } from "@/adapters/load";
 import { isAgent, requireAgent } from "@/app/api/v1/auth";
+import { createWouldOverflow, findDoingColumn, parseWipLimit } from "@/lib/desk-contract";
 import { agentRef } from "@/lib/agent-ref";
 import { configuredColumns, quickAddStatus, resolveColumns } from "@/lib/board";
 
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
   if (!status) return Response.json({ error: "no writable status column" }, { status: 400 });
   const agents = await loadAgentStore();
   const parent = agent.parentId ? await agents.get(agent.parentId) : null;
+  const overflow = createWouldOverflow(board.tasks, status, findDoingColumn(columns), parseWipLimit());
   const task = await store.create({
     title,
     status,
@@ -32,5 +34,5 @@ export async function POST(request: Request) {
     due: body.due ?? null,
     raisedBy: agentRef(agent, parent),
   });
-  return Response.json({ task }, { status: 201 });
+  return Response.json({ task, overflow: overflow || undefined }, { status: 201 });
 }
