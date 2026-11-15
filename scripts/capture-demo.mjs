@@ -6,12 +6,13 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, cp } from "node:fs/promises";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const OUT = "/Users/DevaangMandalia/.grok-scratch/decision-desk-oss";
+const OUT = process.env.DESKOS_CAPTURE_OUT || path.join(os.tmpdir(), "deskos-capture");
 const DOCS = path.join(root, "docs");
 const PORT = 4173;
 const BASE = `http://127.0.0.1:${PORT}`;

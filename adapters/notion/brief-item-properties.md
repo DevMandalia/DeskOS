@@ -2,7 +2,7 @@
 
 These names are the DeskOS / private-desk defaults. The adapter reads and writes them **only when the property already exists**. Missing properties use null/false defaults and never fail a save.
 
-Do **not** apply this list to the live private Brief Items database until Devaang approves it.
+Apply this list additively to a Brief Items database only when the owner asks. Never rename, delete, or alter existing properties, options, or values. Skip a name that already exists.
 
 | Property name | Notion type | Select options / notes |
 | --- | --- | --- |
