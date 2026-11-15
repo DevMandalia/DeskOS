@@ -6,7 +6,8 @@ import { ChatPanel } from "@/components/chat-panel";
 import { SideNav } from "@/components/side-nav";
 import { SiteHeader } from "@/components/site-header";
 import { isChatConfigured } from "@/lib/chat";
-import { isStaticDemo } from "@/lib/demo-mode";
+import { DEMO_CHAT_README_HREF, isStaticDemo } from "@/lib/demo-mode";
+import { CHAT_COMPLETIONS_ENV } from "@/lib/env";
 import { BOARD_HREF, buildNav, deskHref, HOME_HREF, type DeskScope } from "@/lib/nav";
 import { displayTitle } from "@/lib/queue";
 import type { BriefRow } from "@/lib/types";
@@ -56,7 +57,7 @@ export function DeskFrame({
       }
       panel={
         isStaticDemo() ? (
-          <p className="chat-empty-copy">Chat is off in the demo.</p>
+          <DemoChatOff />
         ) : (
           <ChatPanel
             configured={isChatConfigured()}
@@ -68,5 +69,23 @@ export function DeskFrame({
     >
       {children}
     </AppFrame>
+  );
+}
+
+/** Static-demo empty chat: same card + padding as the live desk's `.chat-empty`. */
+function DemoChatOff() {
+  return (
+    <section className="chat" aria-labelledby="demo-chat-off-title">
+      <div className="chat-empty" role="note">
+        <p className="chat-empty-title" id="demo-chat-off-title">
+          Chat is off in this demo
+        </p>
+        <p>
+          Chat is disabled in the static demo. Self-hosters can enable it by setting{" "}
+          <code>{CHAT_COMPLETIONS_ENV}</code>. See{" "}
+          <a href={DEMO_CHAT_README_HREF}>Optional chat in the README</a>.
+        </p>
+      </div>
+    </section>
   );
 }

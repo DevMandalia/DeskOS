@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { isAuthBypass } from "@/lib/env";
-import { isStaticDemo } from "@/lib/demo-mode";
+import { CHAT_COMPLETIONS_ENV, isAuthBypass } from "@/lib/env";
+import { DEMO_CHAT_README_HREF, isStaticDemo } from "@/lib/demo-mode";
 import { defaultStoreKind } from "@/lib/stores";
 
 const env = process.env as Record<string, string | undefined>;
@@ -36,5 +36,10 @@ describe("demo mode", () => {
     process.env.DESK_DEMO = "1";
     expect(isAuthBypass()).toBe(true);
     expect(defaultStoreKind()).toBe("memory");
+  });
+
+  it("points self-hosters at CHAT_COMPLETIONS_URL and the README chat section", () => {
+    expect(CHAT_COMPLETIONS_ENV).toBe("CHAT_COMPLETIONS_URL");
+    expect(DEMO_CHAT_README_HREF).toBe("https://github.com/DevMandalia/DeskOS#optional-chat");
   });
 });

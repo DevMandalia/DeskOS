@@ -93,11 +93,16 @@ Pick adapters with env vars. **Nothing in `src/lib`, `src/app`, or `src/componen
 | `SESSION_CAP` | daily counted verdicts | `5` |
 | `REVIEW_WAITING_DAYS` | stale waiting decisions | `14` |
 | `REVIEW_TASK_DAYS` | stale undated tasks | `30` |
+| `CHAT_COMPLETIONS_URL` | OpenAI-compatible completions URL for the right-hand agent chat | unset (chat off) |
 | `CHAT_REVISIT_DAYS` | come-back for open chats | `3` |
 | `SESSION_CHAT_CAP` | overdue chats in the daily session | `2` |
 | `CHAT_STALE_DAYS` | suggest close after this many open days | `14` |
 
 Notion is an **optional example** adapter (`adapters/notion`). See `adapters/notion/README.md`.
+
+## Optional chat
+
+The right-hand agent chat is off unless you set `CHAT_COMPLETIONS_URL` to an OpenAI-compatible completions endpoint. The static demo never turns it on.
 
 ## Agent API
 

@@ -47,8 +47,11 @@ export function sqlitePath(): string {
   return (process.env.DESK_SQLITE_PATH ?? "").trim() || `${dataDir()}/desk.sqlite`;
 }
 
+/** Completions endpoint that turns the right-hand agent chat on. Unset = chat off. */
+export const CHAT_COMPLETIONS_ENV = "CHAT_COMPLETIONS_URL";
+
 export function isChatConfigured(): boolean {
-  return Boolean((process.env.CHAT_COMPLETIONS_URL ?? "").trim());
+  return Boolean((process.env[CHAT_COMPLETIONS_ENV] ?? "").trim());
 }
 
 /** True when the desk is serving in-memory demo rows (not a durable store). */

@@ -3,6 +3,9 @@ export function isStaticDemo(): boolean {
   return process.env.NEXT_PUBLIC_DESK_DEMO === "1" || process.env.DESK_DEMO === "1";
 }
 
+/** GitHub README fragment for enabling chat after self-hosting. */
+export const DEMO_CHAT_README_HREF = "https://github.com/DevMandalia/DeskOS#optional-chat";
+
 export function demoBanner(): string {
   return "Demo — fake Acme sample data. Nothing is sent anywhere.";
 }
