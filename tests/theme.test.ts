@@ -19,8 +19,10 @@ describe("DeskOS contrast (WCAG AA)", () => {
     expect(contrastRatio(LIGHT.text, LIGHT.bg)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(LIGHT.secondary, LIGHT.bg)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(LIGHT.orange, LIGHT.bg)).toBeGreaterThanOrEqual(4.5);
-    // D2 primary is white on #2F9E62 (~3.4:1). Mapped as designed; AA large-text floor.
-    expect(contrastRatio(LIGHT.onFill, LIGHT.teal)).toBeGreaterThanOrEqual(3);
+    // C1 contrast fix: white primary on #278552 must be >=4.5:1 (AA body).
+    expect(contrastRatio(LIGHT.onFill, LIGHT.teal)).toBeGreaterThanOrEqual(4.5);
+    // Status badge text on accent-soft fill (10px body text) must be >=4.5:1.
+    expect(contrastRatio(LIGHT.onAccentSoft, "#E5F4EB")).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(LIGHT.text, LIGHT.card)).toBeGreaterThanOrEqual(4.5);
   });
 
