@@ -86,7 +86,7 @@ function DemoHome({ rows }: { rows: BriefRow[] }) {
     <div className="home">
       <header className="desk-head">
         <h1 className="home-hello">
-          Good morning, Alex. <span className="home-hello-muted">What needs you.</span>
+          Good morning, Brian. <span className="home-hello-muted">What needs you.</span>
         </h1>
         <p className="home-lede">
           {waiting.length === 0
